@@ -20,10 +20,10 @@ namespace jmmt::ps2 {
 
 		// Unpack modes are handled by the instruction based on the instruction's
 		// cmd value; therefore we have to fill all variations with the value
-		for(auto i = 0x60; i < 0x6f; ++i)
+		for(auto i = 0x60; i < 0x6f; ++i) {
 			table[i] = &Vif::vifInstunpack;
-		for(auto i = 0x70; i < 0x7f; ++i) // w. writemask bit set
-			table[i] = &Vif::vifInstunpack;
+			table[i + 0x10] = &Vif::vifInstunpack; // w. writemask bit set
+		}
 		return table;
 	}();
 

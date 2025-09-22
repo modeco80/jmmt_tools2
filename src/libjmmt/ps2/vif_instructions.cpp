@@ -54,7 +54,6 @@ namespace jmmt::ps2 {
 
 	VIF_INSTRUCTION(flusha) {
 		TODO(flusha)
-
 	}
 
 	VIF_INSTRUCTION(mscal) {
