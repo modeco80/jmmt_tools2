@@ -94,12 +94,12 @@ namespace jmmt::ps2 {
 
 	VIF_INSTRUCTION(direct) {
 		TODO(direct)
-		advanceInput(instr.immediate * 8);
+		advanceInput(instr.getDirectByteCount());
 	}
 
 	VIF_INSTRUCTION(directhl) {
 		TODO(direct)
-		advanceInput(instr.immediate * 8);
+		advanceInput(instr.getDirectByteCount());
 	}
 
 } // namespace jmmt::ps2
