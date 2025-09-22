@@ -1,5 +1,6 @@
 // This is a very simple VIF interpreter.
 #pragma once
+#include <array>
 #include <cassert>
 #include <mco/base_types.hpp>
 
@@ -137,15 +138,18 @@ namespace jmmt::ps2 {
 						return num * 2;
 					else
 						return 4 * (num * (getUnpackLength() / 8));
-				default: // should never happen
-					assert(false);
+				default:
+					break;
 			}
+			// should never happen
+			assert(false);
+			return -1;
 		}
 	};
 
 	mcoAssertSize(VifCodeInstruction, 4);
 
-#define VIF_INSTRUCTION(inst) void Vif::vifInst##inst(VifCodeInstruction instr)
+#define VIF_INSTRUCTION(inst) void Vif::vifInst_##inst(VifCodeInstruction instr)
 
 	/// Emulates the PS2's VIF, allowing for unpack of VIFtag data.
 	class Vif {
@@ -177,9 +181,35 @@ namespace jmmt::ps2 {
 		u32 advanceInput(u32 len);
 		u32 writeBytesToOutput(const void* pWrite, u32 len);
 
+		// Instructions
+		void vifInst_Invalid(VifCodeInstruction);
+#define X(inst, _code) void vifInst_##inst(VifCodeInstruction);
+		VIF_INSTRUCTIONS()
+#undef X
+
 	   public:
 		Vif() {
 			reset();
+		}
+
+		/// See [vif_instructions.cpp] and [vif_instructions_unpack.cpp] for instruction implmentations.
+		constexpr static auto makeInstructionTable() {
+			std::array<void (Vif::*)(VifCodeInstruction), 0x7f> table {};
+			// initalize all elements of the table with invalid instructions
+
+			for(auto i = 0; i < table.size(); ++i)
+				table[i] = &Vif::vifInst_Invalid;
+#define X(inst, code) table[code] = &Vif::vifInst_##inst;
+			VIF_INSTRUCTIONS()
+#undef X
+
+			// Unpack modes are handled by the instruction based on the instruction's
+			// cmd value; therefore we have to fill all variations with the value
+			for(auto i = 0x60; i < 0x6f; ++i) {
+				table[i] = &Vif::vifInst_unpack;
+				table[i + 0x10] = &Vif::vifInst_unpack; // w. writemask bit set
+			}
+			return table;
 		}
 
 		/// Reset the VIF state.
@@ -187,11 +217,6 @@ namespace jmmt::ps2 {
 
 		/// Executes the VIFcode. This will unpack the data into [pUnpackData].
 		void execute(const u8* pTags, u32 tagBufferLength, u8* pUnpackData, u32 unpackLength);
-
-		void vifInstInvalid(VifCodeInstruction);
-#define X(inst, _code) void vifInst##inst(VifCodeInstruction);
-		VIF_INSTRUCTIONS()
-#undef X
 	};
 
 	/// Disassembles VIF tag data into a more human-friendly text stream. Does not actually unpack the data.

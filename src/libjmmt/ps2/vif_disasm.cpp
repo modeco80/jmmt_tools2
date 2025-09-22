@@ -3,45 +3,51 @@
 #include <cstring>
 #include <jmmt/ps2/vif.hpp>
 
+#include "memory_buffer_stream.hpp"
+
 namespace jmmt::ps2 {
 
 	void vifDisassemble(const u8* pVifCodeInstructions, unsigned length) {
-		auto i = 0;
-		while(i < length) {
-			auto* pInst = reinterpret_cast<const VifCodeInstruction*>(&pVifCodeInstructions[i]);
-			i += 4;
+		auto buffer = impl::MemoryBufferStream(pVifCodeInstructions, length);
+		while(true) {
+			// Read instruction
+			VifCodeInstruction inst {};
+			if(buffer.readSome(&inst, sizeof(inst)) != sizeof(inst))
+				break;
 
-			if(pInst->interrupt) {
+			std::printf("%08x: ", (u32)buffer.tell());
+
+			if(inst.interrupt) {
 				std::printf("(I) ");
 			}
 
-			switch(pInst->cmd) {
+			switch(inst.cmd) {
 				case VifCodeInstruction::nop:
 					std::printf("nop\n");
 					break;
 
 				case VifCodeInstruction::stcycl:
-					std::printf("stcycl %d\n", pInst->immediate);
+					std::printf("stcycl %d\n", inst.immediate);
 					break;
 
 				case VifCodeInstruction::offset:
-					std::printf("offset %d\n", pInst->instOffset.newOfst);
+					std::printf("offset %d\n", inst.instOffset.newOfst);
 					break;
 
 				case VifCodeInstruction::itop:
-					std::printf("itop %d\n", pInst->instItop.newItop);
+					std::printf("itop %d\n", inst.instItop.newItop);
 					break;
 
 				case VifCodeInstruction::stmod:
-					std::printf("stmod %d\n", pInst->immediate & 0b00000011);
+					std::printf("stmod %d\n", inst.immediate & 0b00000011);
 					break;
 
 				case VifCodeInstruction::mskpath3:
-					std::printf("(vif1) mskpath3 %d", pInst->immediate & (1 << 15));
+					std::printf("(vif1) mskpath3 %d", inst.immediate & (1 << 15));
 					break;
 
 				case VifCodeInstruction::mark:
-					std::printf("mark %d\n", pInst->immediate);
+					std::printf("mark %d\n", inst.immediate);
 					break;
 
 				// stalls
@@ -59,11 +65,11 @@ namespace jmmt::ps2 {
 
 				// execute vu micro
 				case VifCodeInstruction::mscal:
-					std::printf("mscal %d\n", pInst->immediate);
+					std::printf("mscal %d\n", inst.immediate);
 					break;
 
 				case VifCodeInstruction::mscalf:
-					std::printf("(vif1) mscalf %d\n", pInst->immediate);
+					std::printf("(vif1) mscalf %d\n", inst.immediate);
 					break;
 
 				case VifCodeInstruction::mscnt:
@@ -71,44 +77,47 @@ namespace jmmt::ps2 {
 					break;
 
 				// register sets
-				case VifCodeInstruction::stmask:
-					std::printf("stmask %d\n", *(u32*)&pVifCodeInstructions[i]);
-					i += 4;
-					break;
+				case VifCodeInstruction::stmask: {
+					u32 mask {};
+					if(buffer.readSome(&mask, sizeof(mask)) != sizeof(mask))
+						break;
+					std::printf("stmask %d\n", mask);
+				} break;
 
 				case VifCodeInstruction::strow: {
 					u32 data[4];
-					memcpy(&data[0], &pVifCodeInstructions[i], 4 * sizeof(u32));
+					if(buffer.readSome(&data, sizeof(data)) != sizeof(data))
+						break;
+
 					std::printf("strow 0x%08x,0x%08x,0x%08x,0x%08x\n",
 								data[0], data[1], data[2], data[3]);
-					i += 4 * sizeof(u32);
 				} break;
 
 				case VifCodeInstruction::stcol: {
 					u32 data[4];
-					memcpy(&data[0], &pVifCodeInstructions[i], 4 * sizeof(u32));
+					if(buffer.readSome(&data, sizeof(data)) != sizeof(data))
+						break;
 					std::printf("stcol %d,%d,%d,%d\n",
 								data[0], data[1], data[2], data[3]);
-					i += 4 * sizeof(u32);
 				} break;
 
 				case VifCodeInstruction::mpg:
 					std::printf("mpg (%08x), %u\n",
-								static_cast<u32>(pInst->immediate) * 8,
-								static_cast<u32>(pInst->num));
-					i += static_cast<u32>(pInst->num) * 8;
+								static_cast<u32>(inst.immediate) * 8,
+								static_cast<u32>(inst.num));
+					buffer.advanceInput(static_cast<u32>(inst.num) * 8);
 					break;
 
 				case VifCodeInstruction::direct: {
-					auto n = pInst->getDirectByteCount();
+					auto n = inst.getDirectByteCount();
 					std::printf("(vif1) direct %d\n", n);
-					i += n;
+					buffer.advanceInput(n);
 				} break;
 
 				case VifCodeInstruction::directhl: {
-					auto n = pInst->getDirectByteCount();
+					auto n = inst.getDirectByteCount();
 					std::printf("(vif1) directhl %d\n", n);
-					i += n;
+					buffer.advanceInput(n);
 				} break;
 
 				case 0x60 ... 0x6f: // UNPACK
@@ -120,19 +129,19 @@ namespace jmmt::ps2 {
 						"v4"
 					};
 
-					printf("unpack %s.%d", elementNameTable[static_cast<usize>(pInst->getUnpackElementType())], pInst->getUnpackLength());
+					printf("unpack %s.%d", elementNameTable[static_cast<usize>(inst.getUnpackElementType())], inst.getUnpackLength());
 
-					if(pInst->getUnpackWriteMask()) {
+					if(inst.getUnpackWriteMask()) {
 						std::printf(" wmask");
 					}
 
 					std::printf("\n");
 
-					i += pInst->getUnpackByteLength();
+					buffer.advanceInput(inst.getUnpackByteLength());
 				} break;
 
 				default:
-					std::printf("(!) unhandled VIF command %02x\n", pInst->cmd);
+					std::printf("(!) unhandled VIF command %02x\n", inst.cmd);
 					return;
 			}
 		}

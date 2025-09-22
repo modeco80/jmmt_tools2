@@ -4,28 +4,7 @@
 
 namespace jmmt::ps2 {
 
-	// this is techincally write-only-C++ but i write-only-don't give a fuck
-	// we have constexpr for a reason, so we don't need to write mindless codegens
-
-	/// See [vif_instructions.cpp] and [vif_instructions_unpack.cpp] for instruction implmentations.
-	constexpr static auto instructionTable = []() {
-		std::array<void (Vif::*)(VifCodeInstruction), 0x7f> table {};
-		// initalize all elements of the table with invalid instructions
-
-		for(auto i = 0; i < table.size(); ++i)
-			table[i] = &Vif::vifInstInvalid;
-#define X(inst, code) table[code] = &Vif::vifInst##inst;
-		VIF_INSTRUCTIONS()
-#undef X
-
-		// Unpack modes are handled by the instruction based on the instruction's
-		// cmd value; therefore we have to fill all variations with the value
-		for(auto i = 0x60; i < 0x6f; ++i) {
-			table[i] = &Vif::vifInstunpack;
-			table[i + 0x10] = &Vif::vifInstunpack; // w. writemask bit set
-		}
-		return table;
-	}();
+	constexpr static auto gInstructionTable = Vif::makeInstructionTable();
 
 	u32 Vif::advanceInput(u32 len) {
 		if((inputConsumed + len) > inputLength) {
@@ -85,7 +64,8 @@ namespace jmmt::ps2 {
 			if(auto n = getBytesFromInput(&inst, sizeof(inst)); n != sizeof(inst))
 				break;
 
-			(this->*instructionTable[inst.cmd])(inst);
+			// Execute the instruction.
+			(this->*gInstructionTable[inst.cmd])(inst);
 		}
 
 		this->pInput = nullptr;
