@@ -1,6 +1,8 @@
 
 add_library(jmmt_lib
 	ps2/vif.cpp
+	ps2/vif_instructions.cpp
+	ps2/vif_instruction_unpack.cpp
 	ps2/vif_disasm.cpp
 )
 jmmt_target(jmmt_lib)

@@ -265,6 +265,10 @@ int main() {
 	u32 sampleVifTag = 0x05000001; // stmod 0b01
 	jmmt::ps2::vifDisassemble((u8*)&sampleVifTag, 4);
 #endif
-	jmmt::ps2::vifDisassemble(&data[0], sizeof(data));
+	// jmmt::ps2::vifDisassemble(&data[0], sizeof(data));
+
+	jmmt::ps2::Vif vif;
+	u8 unpackBuffer[512] {};
+	vif.execute(&data[0], sizeof(data), &unpackBuffer[0], sizeof(unpackBuffer));
 	return 0;
 }

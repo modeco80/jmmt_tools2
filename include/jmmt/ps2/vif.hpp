@@ -5,44 +5,36 @@
 
 namespace jmmt::ps2 {
 
+#define VIF_INSTRUCTIONS() \
+	X(nop, 0)              \
+	X(stcycl, 1)           \
+	X(offset, 2)           \
+	X(base, 3)             \
+	X(itop, 4)             \
+	X(stmod, 5)            \
+	X(mskpath3, 6)         \
+	X(mark, 7)             \
+	X(flushe, 0x10)        \
+	X(flush, 0x11)         \
+	X(flusha, 0x13)        \
+	X(mscal, 0x14)         \
+	X(mscalf, 0x15)        \
+	X(mscnt, 0x17)         \
+	X(stmask, 0x20)        \
+	X(strow, 0x30)         \
+	X(stcol, 0x31)         \
+	X(mpg, 0x4a)           \
+	X(direct, 0x50)        \
+	X(directhl, 0x51)      \
+	X(unpack, 0x60)
+
 	/// A VIFcode instruction. This strucutre is public so that consumers of this
 	/// code can also create their own VIFcode instruction.
 	struct [[gnu::packed]] VifCodeInstruction {
 		enum CmdType : u8 {
-			// general instructions
-			nop = 0,
-			stcycl = 1,
-			offset = 2,
-			base = 3,
-			itop = 4,
-			stmod = 5,
-			mskpath3 = 6,
-			mark = 7,
-
-			// pipeline flushes
-			flushe = 0x10,
-			flush = 0x11,
-			flusha = 0x13,
-
-			// call vu microprogram
-			mscal = 0x14,
-			mscalf = 0x15,
-			mscnt = 0x17,
-
-			// mask/row/column registers
-			stmask = 0x20,
-			strow = 0x30,
-			stcol = 0x31,
-
-			// transfer memory into vu micromem
-			mpg = 0x4a,
-
-			// transfer direct to GIF via p2
-			direct = 0x50,
-			directhl = 0x51,
-
-			// unpack (welcome to hell, hope you like it here)
-			unpack = 0x60,
+#define X(inst, code) inst = code,
+			VIF_INSTRUCTIONS()
+#undef X
 		};
 
 		enum class UnpackElementType {
@@ -68,7 +60,6 @@ namespace jmmt::ps2 {
 
 			struct [[gnu::packed]] {
 				u16 newOfst : 9;
-				u8 unused : 6;
 				u8 num;
 			} instOffset;
 
@@ -132,23 +123,75 @@ namespace jmmt::ps2 {
 
 			return cmd & (1 << 4);
 		}
+
+		u32 getUnpackByteLength() const {
+			switch(getUnpackElementType()) {
+				case UnpackElementType::S:
+					return num * (getUnpackLength() / 8);
+				case UnpackElementType::V2:
+					return 2 * (num * (getUnpackLength() / 8));
+				case VifCodeInstruction::UnpackElementType::V3:
+					return 3 * (num * (getUnpackLength() / 8));
+				case VifCodeInstruction::UnpackElementType::V4:
+					if(getUnpackLength() == 5)
+						return num * 2;
+					else
+						return 4 * (num * (getUnpackLength() / 8));
+				default: // should never happen
+					assert(false);
+			}
+		}
 	};
 
 	mcoAssertSize(VifCodeInstruction, 4);
 
+#define VIF_INSTRUCTION(inst) void Vif::vifInst##inst(VifCodeInstruction instr)
+
 	/// Emulates the PS2's VIF, allowing for unpack of VIFtag data.
 	class Vif {
 		// registers
+		u8 mode {};
+		struct CycleRegister {
+			u8 cl : 8;
+			u16 wl : 9;
+		};
 
+		CycleRegister cycle;
+		u32 ofst;
+		u32 mask;
 		u32 row[4] {};
 		u32 col[4] {};
 
+		// Interperter state
+		bool exit = false;
+
+		u8 const* pInput;
+		u32 inputLength;
+		u32 inputConsumed = 0;
+
+		u8* pOutput;
+		u32 outputLength;
+		u32 outputConsumed = 0;
+
+		u32 getBytesFromInput(void* pOut, u32 len);
+		u32 advanceInput(u32 len);
+		u32 writeBytesToOutput(const void* pWrite, u32 len);
+
 	   public:
+		Vif() {
+			reset();
+		}
+
 		/// Reset the VIF state.
 		void reset();
 
-		/// Executes the VIF tags. This will unpack the data.
+		/// Executes the VIFcode. This will unpack the data into [pUnpackData].
 		void execute(const u8* pTags, u32 tagBufferLength, u8* pUnpackData, u32 unpackLength);
+
+		void vifInstInvalid(VifCodeInstruction);
+#define X(inst, _code) void vifInst##inst(VifCodeInstruction);
+		VIF_INSTRUCTIONS()
+#undef X
 	};
 
 	/// Disassembles VIF tag data into a more human-friendly text stream. Does not actually unpack the data.

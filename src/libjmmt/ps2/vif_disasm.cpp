@@ -128,24 +128,7 @@ namespace jmmt::ps2 {
 
 					std::printf("\n");
 
-					switch(pInst->getUnpackElementType()) {
-						case VifCodeInstruction::UnpackElementType::S:
-							i += pInst->num * (pInst->getUnpackLength() / 8);
-							break;
-
-						case VifCodeInstruction::UnpackElementType::V2:
-							i += 2 * (pInst->num * (pInst->getUnpackLength() / 8));
-							break;
-						case VifCodeInstruction::UnpackElementType::V3:
-							i += 3 * (pInst->num * (pInst->getUnpackLength() / 8));
-							break;
-						case VifCodeInstruction::UnpackElementType::V4:
-							if(pInst->getUnpackLength() == 5)
-								i += pInst->num * 2;
-							else
-								i += 4 * (pInst->num * (pInst->getUnpackLength() / 8));
-							break;
-					}
+					i += pInst->getUnpackByteLength();
 				} break;
 
 				default:
