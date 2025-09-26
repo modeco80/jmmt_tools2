@@ -1,6 +1,4 @@
-#include <cassert>
 #include <cstdio>
-#include <cstring>
 #include <jmmt/ps2/vif.hpp>
 
 #include "memory_buffer_stream.hpp"
@@ -129,7 +127,7 @@ namespace jmmt::ps2 {
 						"v4"
 					};
 
-					printf("unpack %s.%d", elementNameTable[static_cast<usize>(inst.getUnpackElementType())], inst.getUnpackLength());
+					printf("unpack %s.%d", elementNameTable[static_cast<usize>(inst.getUnpackElementType())], inst.getUnpackBitLength());
 
 					if(inst.getUnpackWriteMask()) {
 						std::printf(" wmask");

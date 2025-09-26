@@ -111,11 +111,14 @@ namespace jmmt::ps2 {
 			return static_cast<UnpackElementType>(elementSizeRaw);
 		}
 
-		u32 getUnpackLength() const {
+		u32 getUnpackRawLength() const {
 			assert((cmd >= 0x60 && cmd <= 0x6f) ||
 				   (cmd >= 0x70 && cmd <= 0x7f));
+			return cmd & 3;
+		}
 
-			return LENGTH_LOOKUP_TABLE[(cmd >> 0) & 3];
+		u32 getUnpackBitLength() const {
+			return LENGTH_LOOKUP_TABLE[getUnpackRawLength()];
 		}
 
 		bool getUnpackWriteMask() const {
@@ -125,19 +128,40 @@ namespace jmmt::ps2 {
 			return cmd & (1 << 4);
 		}
 
+		u32 getUnpackElementByteLength() const {
+			switch(getUnpackElementType()) {
+				case UnpackElementType::S:
+					return (getUnpackBitLength() / 8);
+				case UnpackElementType::V2:
+					return (4 * (getUnpackBitLength() / 8));
+				case VifCodeInstruction::UnpackElementType::V3:
+					return (4 * (getUnpackBitLength() / 8));
+				case VifCodeInstruction::UnpackElementType::V4:
+					if(getUnpackBitLength() == 5)
+						return 2;
+					else
+						return 4 * ((getUnpackBitLength() / 8));
+				default:
+					break;
+			}
+			// should never happen
+			assert(false);
+			return -1;
+		}
+
 		u32 getUnpackByteLength() const {
 			switch(getUnpackElementType()) {
 				case UnpackElementType::S:
-					return num * (getUnpackLength() / 8);
+					return num * (getUnpackBitLength() / 8);
 				case UnpackElementType::V2:
-					return 2 * (num * (getUnpackLength() / 8));
+					return 2 * (num * (getUnpackBitLength() / 8));
 				case VifCodeInstruction::UnpackElementType::V3:
-					return 3 * (num * (getUnpackLength() / 8));
+					return 3 * (num * (getUnpackBitLength() / 8));
 				case VifCodeInstruction::UnpackElementType::V4:
-					if(getUnpackLength() == 5)
+					if(getUnpackBitLength() == 5)
 						return num * 2;
 					else
-						return 4 * (num * (getUnpackLength() / 8));
+						return 4 * (num * (getUnpackBitLength() / 8));
 				default:
 					break;
 			}
@@ -151,10 +175,30 @@ namespace jmmt::ps2 {
 
 #define VIF_INSTRUCTION(inst) void Vif::vifInst_##inst(VifCodeInstruction instr)
 
+	struct VifPacket {
+		enum {
+			Direct = 0,
+			Unpack = 1,
+
+			Single = 0x10, // lane kinds
+			V2,
+			V4
+		};
+
+		u16 kind;
+		u16 lanekind;
+
+		void* data() {
+			return static_cast<void*>(this + 1);
+		}
+	};
+
 	/// Emulates the PS2's VIF, allowing for unpack of VIFtag data.
 	class Vif {
+	   public:
 		// registers
 		u8 mode {};
+
 		struct CycleRegister {
 			u8 cl : 8;
 			u16 wl : 9;
@@ -166,6 +210,7 @@ namespace jmmt::ps2 {
 		u32 row[4] {};
 		u32 col[4] {};
 
+	   private:
 		// Interperter state
 		bool exit = false;
 
@@ -179,7 +224,15 @@ namespace jmmt::ps2 {
 
 		u32 getBytesFromInput(void* pOut, u32 len);
 		u32 advanceInput(u32 len);
-		u32 writeBytesToOutput(const void* pWrite, u32 len);
+
+		/// Returns a pointer to data which can be written to.
+		/// Essentially this is a bump allocator.
+		void* allocOutputData(u32 len);
+
+		VifPacket* allocVifPacket(u32 len) {
+			void* p = allocOutputData(len + sizeof(VifPacket));
+			return static_cast<VifPacket*>(p);
+		}
 
 		// Instructions
 		void vifInst_Invalid(VifCodeInstruction);

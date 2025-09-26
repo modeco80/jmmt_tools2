@@ -1,7 +1,7 @@
 #include <jmmt/ps2/vif.hpp>
 
 // Sample VIF program
-const u8 data[256] = {
+const u8 testPacket[256] = {
 	0x00,
 	0x00,
 	0x00,
@@ -260,15 +260,45 @@ const u8 data[256] = {
 	0x14,
 };
 
-int main() {
-#if 0
-	u32 sampleVifTag = 0x05000001; // stmod 0b01
-	jmmt::ps2::vifDisassemble((u8*)&sampleVifTag, 4);
-#endif
-	jmmt::ps2::vifDisassemble(&data[0], sizeof(data));
+void hexDump(const void* data, usize size) {
+	char ascii[17];
+	usize i, j;
+	ascii[16] = '\0';
+	for(i = 0; i < size; ++i) {
+		printf("%02X ", ((unsigned char*)data)[i]);
+		if(((unsigned char*)data)[i] >= ' ' && ((unsigned char*)data)[i] <= '~') {
+			ascii[i % 16] = ((unsigned char*)data)[i];
+		} else {
+			ascii[i % 16] = '.';
+		}
+		if((i + 1) % 8 == 0 || i + 1 == size) {
+			printf(" ");
+			if((i + 1) % 16 == 0) {
+				printf("|  %s \n", ascii);
+			} else if(i + 1 == size) {
+				ascii[(i + 1) % 16] = '\0';
+				if((i + 1) % 16 <= 8) {
+					printf(" ");
+				}
+				for(j = (i + 1) % 16; j < 16; ++j) {
+					printf("   ");
+				}
+				printf("|  %s \n", ascii);
+			}
+		}
+	}
+}
 
+int main() {
+	jmmt::ps2::vifDisassemble(&testPacket[0], sizeof(testPacket));
+
+	// test the vif emulator
 	jmmt::ps2::Vif vif;
+	vif.cycle.cl = 0;
 	u8 unpackBuffer[512] {};
-	vif.execute(&data[0], sizeof(data), &unpackBuffer[0], sizeof(unpackBuffer));
+	vif.execute(&testPacket[0], sizeof(testPacket), &unpackBuffer[0], sizeof(unpackBuffer));
+
+	printf("the dance:\n");
+	hexDump(&unpackBuffer[0], sizeof(unpackBuffer));
 	return 0;
 }

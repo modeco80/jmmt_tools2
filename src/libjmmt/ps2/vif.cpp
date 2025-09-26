@@ -29,16 +29,18 @@ namespace jmmt::ps2 {
 		return len;
 	}
 
-	u32 Vif::writeBytesToOutput(const void* pWrite, u32 len) {
+	void* Vif::allocOutputData(u32 len) {
+		std::printf("allocOutputData(%u)\n", len);
 		if((outputConsumed + len) > outputLength) {
 			len = outputLength - outputConsumed;
 		}
 
 		if(len == 0)
-			return 0;
+			return &pOutput[outputConsumed];
 
-		memcpy(&pOutput[outputConsumed], pWrite, len);
-		return len;
+		void* pOut = &pOutput[outputConsumed];
+		outputConsumed += len;
+		return pOut;
 	}
 
 	void Vif::reset() {
