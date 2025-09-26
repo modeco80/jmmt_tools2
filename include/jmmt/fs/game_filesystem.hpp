@@ -1,0 +1,47 @@
+#pragma once
+#include <filesystem>
+#include <jmmt/game_version.hpp>
+#include <mco/base_types.hpp>
+#include <mco/pimple_container.hpp>
+#include <unordered_map>
+
+namespace jmmt::fs {
+
+	class PakFileSystem;
+
+	/// This class wraps accessing the filesystem as extracted from the disc.
+	class GameFileSystem {
+		class Impl;
+		Unique<Impl> impl;
+
+	   public:
+		struct PackageFileMetadata {
+			u32 nrPackageFiles;
+			u32 chunksStartOffset;
+		};
+
+		/// Constructor.
+		GameFileSystem(const std::filesystem::path& path);
+		~GameFileSystem();
+
+		bool initialize();
+
+		/// Returns true if the filesystem is valid.
+		bool isValidFilesystem() const;
+
+		/// Returns the identified game version of the current filesystem, or
+		/// [GameVersion::Invalid] if invalid.
+		GameVersion getVersion() const;
+
+		/// Gets metadata of all package files
+		const std::unordered_map<std::string, PackageFileMetadata>& getMetadata() const;
+
+		/// Opens a package file. Returns a Ref<> to the package filesystem.
+		Ref<PakFileSystem> openPackageFile(const std::string& packageFileName);
+	};
+
+	/// Creates a [GameFileSystem] instance for the files inside [path].
+	/// You should prefer this function.
+	Ref<GameFileSystem> createGameFileSystem(const std::filesystem::path& path);
+
+} // namespace jmmt::fs

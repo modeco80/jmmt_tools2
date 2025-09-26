@@ -1,6 +1,6 @@
 #pragma once
 
-#include <base/types.hpp>
+#include <mco/base_types.hpp>
 
 namespace jmmt::structs {
 
