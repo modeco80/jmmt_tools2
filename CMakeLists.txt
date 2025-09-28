@@ -16,6 +16,8 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(Policies)
 include(jmmtProjectFuncs)
 
+option(JMMT_USE_OPENSSL "Use OpenSSL library" ON)
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
