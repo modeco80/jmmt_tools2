@@ -21,8 +21,6 @@ option(JMMT_USE_OPENSSL "Use OpenSSL library" ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-# FIXME //third_party/mcolib
-add_subdirectory(/home/lily/source/mcolib2 mcolib_build)
-
-
+# Third party dependencies
+add_subdirectory(third_party/mcolib)
 add_subdirectory(src/libjmmt)
