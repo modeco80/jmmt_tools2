@@ -9,56 +9,11 @@
 namespace jmmt::fs {
 
 	bool doesFolderExist(const std::filesystem::path& root, const std::string_view folderName) {
-		auto folderNameClone = std::string(folderName);
-
-		if(std::filesystem::is_directory(root / folderNameClone))
-			return true;
-
-		// The Linux ISO9660 driver prefers lowercasing filenames.
-		for(auto& c : folderNameClone)
-			c = std::tolower(c);
-
-		if(std::filesystem::is_directory(root / folderNameClone))
-			return true;
-
-		// Give up.
-		return false;
+		return std::filesystem::is_directory(root / folderName);
 	}
-
-	bool doesPathMatch(const std::filesystem::path& path, const std::string_view fileName) {
-		auto fileNameClone = std::string(fileName);
-		auto name = path.filename().string();
-
-		if(name == fileNameClone)
-			return true;
-
-		// The Linux ISO9660 driver prefers lowercasing filenames.
-		for(auto& c : fileNameClone)
-			c = std::tolower(c);
-
-		if(name == fileNameClone)
-			return true;
-
-		// Give up.
-		return false;
-	}
-
 
 	bool doesFileExist(const std::filesystem::path& path, const std::string_view fileName) {
-		auto fileNameClone = std::string(fileName);
-
-		if(std::filesystem::is_regular_file(path / fileNameClone))
-			return true;
-
-		// The Linux ISO9660 driver prefers lowercasing filenames.
-		for(auto& c : fileNameClone)
-			c = std::tolower(c);
-
-		if(std::filesystem::is_regular_file(path / fileNameClone))
-			return true;
-
-		// Give up.
-		return false;
+		return std::filesystem::is_regular_file(path / fileName);
 	}
 
 	/// Internal helper function to open a game path. This might be exposed later.
