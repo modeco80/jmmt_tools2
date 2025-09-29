@@ -92,7 +92,7 @@ namespace jmmt::fs {
 	   public:
 		std::filesystem::path rootPath;
 		std::optional<GameVersion> detectedVersion;
-		std::unordered_map<std::string, PackageFileMetadata> metadata;
+		std::unordered_map<std::string, PackageMetadata> metadata;
 
 		explicit constexpr Impl(const std::filesystem::path& path)
 			: rootPath(path) {
@@ -146,6 +146,14 @@ namespace jmmt::fs {
 		GameVersion getVersionImpl() const {
 			return detectedVersion.value_or(GameVersion::Invalid);
 		}
+
+		Ref<PakFileSystem> openPackageFileImpl(const std::string& packageFileName) {
+			if(auto it = metadata.find(packageFileName); it != metadata.end()) {
+				// TODO: Create the instance.
+			}
+
+			return nullptr;
+		}
 	};
 
 	// GameFileSystem
@@ -168,7 +176,7 @@ namespace jmmt::fs {
 		return impl->getVersionImpl();
 	}
 
-	const std::unordered_map<std::string, GameFileSystem::PackageFileMetadata>& GameFileSystem::getPackageMetadata() const {
+	const std::unordered_map<std::string, PackageMetadata>& GameFileSystem::getPackageMetadata() const {
 		return impl->metadata;
 	}
 
