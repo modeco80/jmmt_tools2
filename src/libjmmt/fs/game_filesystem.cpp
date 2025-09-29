@@ -16,20 +16,37 @@ namespace jmmt::fs {
 		return std::filesystem::is_regular_file(path / fileName);
 	}
 
-	/// Internal helper function to open a game path. This might be exposed later.
-	mco::FileStream openGameFile(const std::filesystem::path& root, const std::string_view filename) {
-		auto datFilename = std::format("{:X}.DAT", jmmt::HashString(filename));
-		auto path = root / "DATA" / datFilename;
-
-		if(std::filesystem::is_regular_file(path)) {
-			return mco::FileStream::open(path.string().c_str());
+	const std::string_view getTypeFolderName(GameFileSystem::FileType type) {
+		switch(type) {
+			case GameFileSystem::FileData: return "DATA";
+			case GameFileSystem::FileIrx: return "IRX";
+			case GameFileSystem::FileMovies: return "MOVIES";
+			case GameFileSystem::FileMusic: return "MUSIC";
+			default: return "";
 		}
-
-		// If the .DAT name didn't work, then just try the clear name.
-		path = root / "DATA" / filename;
-		return mco::FileStream::open(path.string().c_str());
 	}
 
+	mco::FileStream openGameFile(const std::filesystem::path& root, const std::string_view filename, GameFileSystem::FileType type) {
+		auto folderPath = root / getTypeFolderName(type);
+
+		if(type == GameFileSystem::FileData) {
+			auto datFilename = std::format("{:X}.DAT", jmmt::HashString(filename));
+			if(auto composedPath = folderPath / datFilename; std::filesystem::is_regular_file(composedPath)) {
+				return mco::FileStream::open(composedPath.string().c_str());
+			} else {
+				// If the .DAT name didn't work, then just try the clear name.
+				composedPath = folderPath / filename;
+				return mco::FileStream::open(composedPath.string().c_str());
+			}
+		} else {
+			// All other file types are always clearnamed.
+			auto composedPath = folderPath / filename;
+			return mco::FileStream::open(composedPath.string().c_str());
+		}
+	}
+
+	/// This class wraps the logic of detecting the version of the JMMT game
+	/// that is being opened by the GameFileSystem implementation.
 	class GameDetector {
 		std::filesystem::path rootPath{};
 		GameVersion detectedVersion{};
@@ -51,7 +68,7 @@ namespace jmmt::fs {
 		std::optional<GameVersion> detectVersion() {
 			// First, check for folders in the root directory that should always exist.
 			// If any of these fail, then we are probably not in a JMMT game root,
-			// and thus we can't detect any version of the game.
+			// and thus we can't reliably detect any version of the game.
 			if(!doesFolderExist(rootPath, "DATA") ||
 			   !doesFolderExist(rootPath, "IRX") ||
 			   !doesFolderExist(rootPath, "MOVIES") ||
@@ -63,12 +80,11 @@ namespace jmmt::fs {
 			// happen to be discovered. I doubt that'll happen, but futureproofing...
 			forEachGameVersion([&](GameVersion version, const std::string_view slusName) {
 				if(doesFileExist(rootPath, slusName)) {
-					// We found a canidate filename which matches a version.
+					// We found a canidate ELF filename which matches a version.
 					auto str = (rootPath /slusName).string();
 					auto stream = mco::FileStream::open(str.c_str());
 					auto hash = impl::sha256Digest(stream);
 					if(hash == *getVersionHash(version)) {
-						// The hash matches. We can now prove this version of the game.
 						setDetectedVersion(version);
 						return false;
 					}
@@ -79,7 +95,8 @@ namespace jmmt::fs {
 				return true;
 			});
 
-			// No version was detected.
+			// No version was detected by the above logic, so it's probably safe to say
+			// this isn't a JMMT filesystem.
 			if(!detected) {
 				return std::nullopt;
 			}
@@ -115,7 +132,7 @@ namespace jmmt::fs {
 
 			// Try and load package.toc data.
 			try {
-				auto packageTocFile = openGameFile(rootPath, "package.toc");
+				auto packageTocFile = openFileImpl("package.toc", FileData);
 				auto nTocEntries = packageTocFile.getSize() / sizeof(structs::PackageTocHeader);
 				for(auto i = 0; i < nTocEntries; ++i) {
 					structs::PackageTocHeader tocEntry;
@@ -149,10 +166,14 @@ namespace jmmt::fs {
 
 		Ref<PakFileSystem> openPackageFileImpl(const std::string& packageFileName) {
 			if(auto it = metadata.find(packageFileName); it != metadata.end()) {
-				// TODO: Create the instance.
+				// TODO: Create the filesystem
 			}
 
 			return nullptr;
+		}
+
+		mco::FileStream openFileImpl(const std::string& filename, FileType type) {
+			return openGameFile(rootPath, filename, type);
 		}
 	};
 
@@ -181,8 +202,11 @@ namespace jmmt::fs {
 	}
 
 	Ref<PakFileSystem> GameFileSystem::openPackageFile(const std::string& packageFileName) {
-		// STUB FOR NOW
-		return nullptr;
+		return impl->openPackageFileImpl(packageFileName);
+	}
+
+	mco::FileStream GameFileSystem::openFile(const std::string& filename, FileType type) {
+		return impl->openFileImpl(filename, type);
 	}
 
 	Ref<GameFileSystem> createGameFileSystem(const std::filesystem::path& path) {

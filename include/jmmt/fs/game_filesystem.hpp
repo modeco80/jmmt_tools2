@@ -4,6 +4,7 @@
 #include <mco/base_types.hpp>
 #include <mco/pimple_container.hpp>
 #include <jmmt/fs/package_metadata.hpp>
+#include <mco/io/file_stream.hpp>
 #include <unordered_map>
 
 namespace jmmt::fs {
@@ -16,6 +17,13 @@ namespace jmmt::fs {
 		Unique<Impl> impl;
 
 	   public:
+		enum FileType {
+			FileData,
+			FileIrx,
+			FileMovies,
+			FileMusic
+		};
+
 		/// Constructor. [path] must be a root path.
 		GameFileSystem(const std::filesystem::path& path);
 		~GameFileSystem();
@@ -36,6 +44,9 @@ namespace jmmt::fs {
 
 		/// Opens a package file. Returns a Ref<> to the package filesystem.
 		Ref<PakFileSystem> openPackageFile(const std::string& packageFileName);
+
+		/// Opens a file from the game filesystem. Only opens for reading.
+		mco::FileStream openFile(const std::string& filename, FileType type = FileData);
 	};
 
 	/// Creates a [GameFileSystem] instance for the path specified in [path].
