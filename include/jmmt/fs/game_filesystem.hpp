@@ -36,7 +36,7 @@ namespace jmmt::fs {
 
 		/// Gets metadata of all package files that are in this filesystem.
 		/// Not directly useful (intended for the pak file system), but public just in case.
-		const std::unordered_map<std::string, PackageFileMetadata>& getMetadata() const;
+		const std::unordered_map<std::string, PackageFileMetadata>& getPackageMetadata() const;
 
 		/// Opens a package file. Returns a Ref<> to the package filesystem.
 		Ref<PakFileSystem> openPackageFile(const std::string& packageFileName);

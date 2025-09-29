@@ -168,7 +168,7 @@ namespace jmmt::fs {
 		return impl->getVersionImpl();
 	}
 
-	const std::unordered_map<std::string, GameFileSystem::PackageFileMetadata>& GameFileSystem::getMetadata() const {
+	const std::unordered_map<std::string, GameFileSystem::PackageFileMetadata>& GameFileSystem::getPackageMetadata() const {
 		return impl->metadata;
 	}
 

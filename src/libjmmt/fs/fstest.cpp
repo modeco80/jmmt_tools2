@@ -7,7 +7,7 @@ int main() {
 	if(fs) {
 		printf("Detected game version: %s\n", jmmt::getVersionString(fs->getVersion()).c_str());
 
-		const auto& m = fs->getMetadata();
+		const auto& m = fs->getPackageMetadata();
 		for(auto& [k, v] : m) {
 			std::printf("package file %s\n", k.c_str());
 		}
