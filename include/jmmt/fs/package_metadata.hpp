@@ -9,7 +9,10 @@ namespace jmmt::fs {
 		u32 nrPackageFiles;
 
 		/// The offset where the pgrp/pfil chunks start.
-		u32 chunksStartOffset;
+		u32 chunkStartOffset;
+
+		/// The size of the chunk data portion.
+		u32 chunkDataSize;
 	};
 
 } // namespace jmmt::fs

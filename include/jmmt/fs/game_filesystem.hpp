@@ -12,7 +12,7 @@ namespace jmmt::fs {
 	class PakFileSystem;
 
 	/// This class wraps accessing the filesystem as extracted from the disc.
-	class GameFileSystem {
+	class GameFileSystem : public std::enable_shared_from_this<GameFileSystem> {
 		class Impl;
 		Unique<Impl> impl;
 

@@ -10,6 +10,9 @@ add_library(jmmt_lib
 	# Filesystem library
 	fs/game_filesystem.cpp
 
+	# Package filesystem
+	fs/pak_filesystem.cpp
+
 	# PS2 library
 	ps2/vif.cpp
 	ps2/vif_instructions.cpp

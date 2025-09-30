@@ -4,6 +4,7 @@
 #include <mco/io/file_stream.hpp>
 #include <jmmt/impl/sha256.hpp>
 #include <jmmt/crc.hpp>
+#include "jmmt/fs/pak_filesystem.hpp"
 #include "jmmt/game_version.hpp"
 
 namespace jmmt::fs {
@@ -30,7 +31,7 @@ namespace jmmt::fs {
 		auto folderPath = root / getTypeFolderName(type);
 
 		if(type == GameFileSystem::FileData) {
-			auto datFilename = std::format("{:X}.DAT", jmmt::HashString(filename));
+			auto datFilename = std::format("{:X}.DAT", jmmt::hashString(filename));
 			if(auto composedPath = folderPath / datFilename; std::filesystem::is_regular_file(composedPath)) {
 				return mco::FileStream::open(composedPath.string().c_str());
 			} else {
@@ -78,7 +79,8 @@ namespace jmmt::fs {
 			// Probe for a game version.
 			// This should auto-update if/when new JMMT versions
 			// happen to be discovered. I doubt that'll happen, but futureproofing...
-			forEachGameVersion([&](GameVersion version, const std::string_view slusName) {
+			forEachGameVersion([&](GameVersion version) {
+				const auto slusName = getVersionSlusName(version);
 				if(doesFileExist(rootPath, slusName)) {
 					// We found a canidate ELF filename which matches a version.
 					auto str = (rootPath /slusName).string();
@@ -142,9 +144,11 @@ namespace jmmt::fs {
 						return false;
 					}
 
+					// Convert package.toc metadata to the libjmmt format.
 					metadata[tocEntry.fileName] = {
 						.nrPackageFiles = tocEntry.tocFileCount,
-						.chunksStartOffset = tocEntry.tocStartOffset
+						.chunkStartOffset = tocEntry.tocStartOffset,
+						.chunkDataSize = tocEntry.tocSize
 					};
 				}
 			} catch(std::system_error& err) {
@@ -164,9 +168,12 @@ namespace jmmt::fs {
 			return detectedVersion.value_or(GameVersion::Invalid);
 		}
 
-		Ref<PakFileSystem> openPackageFileImpl(const std::string& packageFileName) {
+		Ref<PakFileSystem> openPackageFileImpl(Ref<GameFileSystem> that, const std::string& packageFileName) {
 			if(auto it = metadata.find(packageFileName); it != metadata.end()) {
-				// TODO: Create the filesystem
+				auto sp = std::make_shared<PakFileSystem>(that, it->second, packageFileName);
+				if(!sp->initialize())
+					return nullptr;
+				return sp;
 			}
 
 			return nullptr;
@@ -202,7 +209,7 @@ namespace jmmt::fs {
 	}
 
 	Ref<PakFileSystem> GameFileSystem::openPackageFile(const std::string& packageFileName) {
-		return impl->openPackageFileImpl(packageFileName);
+		return impl->openPackageFileImpl(shared_from_this(), packageFileName);
 	}
 
 	mco::FileStream GameFileSystem::openFile(const std::string& filename, FileType type) {

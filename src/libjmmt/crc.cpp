@@ -49,7 +49,7 @@ namespace jmmt {
 		0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 	};
 
-	Crc32Result HashString(std::string_view str) {
+	Crc32Result hashString(std::string_view str) {
 		u32 crc = 0;
 		for(char c : str) {
 			crc = Crc32Table[(crc ^ (c & ~0x20)) & 0xff] ^ (crc >> 8);
@@ -58,7 +58,7 @@ namespace jmmt {
 	}
 
 
-	Crc32Result HashStringCase(std::string_view str) {
+	Crc32Result hashStringCase(std::string_view str) {
 		u32 crc = 0;
 		for(char c : str) {
 			crc = Crc32Table[(crc ^ (c)) & 0xff] ^ (crc >> 8);
