@@ -3,6 +3,7 @@
 #include <jmmt/fs/game_filesystem.hpp>
 #include <jmmt/fs/pak_filesystem.hpp>
 #include <jmmt/impl/freelist_allocator.hpp>
+#include <jmmt/impl/lazy.hpp>
 #include <jmmt/lzss/decompress.hpp>
 #include <jmmt/structs/package/file.hpp>
 #include <jmmt/structs/package/group.hpp>
@@ -22,7 +23,7 @@ namespace jmmt::fs {
 			u32 chunkDataOffset;	   // Offset in .pak file where this chunk starts
 			u32 chunkDataSize;		   // The size of the chunk data inside of the pak
 			u32 chunkUncompressedSize; // The uncompressed size of the chunk.
-			bool compressed;		   // True if this chunk is compressed
+			bool compressed;		   // True if this chunk is compressed.
 		};
 
 		u32 nChunks;
@@ -34,6 +35,7 @@ namespace jmmt::fs {
 		std::string typeName;
 
 		u32 fileSize;
+		u32 dateStamp;
 
 		FileMetadata(u32 nChunks) : nChunks(nChunks) {
 			pChunkMetaEntries = new ChunkMetadata[nChunks];
@@ -102,16 +104,16 @@ namespace jmmt::fs {
 			return cumulativeOffset;
 		}
 
-		void newChunk(u32 chunkIndex) {
+		void advanceToChunk(u32 chunkIndex) {
 			// dont switch chunks
 			if(chunkIndex > metadata.nChunks)
 				return;
 			currentChunk = chunkIndex;
 			currentChunkByteOffset = 0;
-			updateChunk();
+			updateChunkBuffer();
 		}
 
-		void updateChunk() {
+		void updateChunkBuffer() {
 			// Cache the uncompressed size of the chunk.
 			currentChunkByteSize = metadata[currentChunk].chunkUncompressedSize;
 
@@ -119,7 +121,7 @@ namespace jmmt::fs {
 			packageFileStream.seek(metadata[currentChunk].chunkDataOffset, mco::Stream::Begin);
 			packageFileStream.read(&chunkReadBuffer[0], metadata[currentChunk].chunkDataSize);
 
-			// Depending on if the chunk is compressed or not, copy the data into the chunk buffer.
+			// Act appropiately depending on if the chunk data is compressed or not
 			if(metadata[currentChunk].compressed) {
 				lzss::decompress(nullptr, &chunkReadBuffer[0], metadata[currentChunk].chunkDataSize, &chunkBuffer[0]);
 			} else {
@@ -135,7 +137,7 @@ namespace jmmt::fs {
 
 			// Don't switch the current chunk unless we have to.
 			if(auto chunkIndex = findChunkIndex(offset, metadata.nChunks); chunkIndex != currentChunk)
-				newChunk(chunkIndex);
+				advanceToChunk(chunkIndex);
 
 			// Set state once we've done that
 			currentByteOffset = offset;
@@ -151,7 +153,7 @@ namespace jmmt::fs {
 
 			// Reset state and initalize the first chunk.
 			currentByteOffset = 0;
-			newChunk(0);
+			advanceToChunk(0);
 		}
 
 		i32 read(void* buffer, u32 count) {
@@ -173,7 +175,7 @@ namespace jmmt::fs {
 				if(currentChunkByteOffset >= currentChunkSize) {
 					if(currentChunk + 1 >= metadata.nChunks)
 						break;
-					newChunk(currentChunk + 1);
+					advanceToChunk(currentChunk + 1);
 				}
 			}
 
@@ -240,6 +242,7 @@ namespace jmmt::fs {
 		structs::PackageGroupHeader packageGroup;
 
 		std::unordered_map<std::string, Unique<FileMetadata>> fileMetadata;
+		impl::Lazy<std::unordered_map<std::string, PakFileSystem::Metadata>> publicFileMetadata;
 
 		/// Open files.
 		FileFreeList openFiles;
@@ -288,6 +291,7 @@ namespace jmmt::fs {
 							fileMetadata[currentFileName]->sourceCompressName = findInStringTable(pfil.indexSourceCompressName, stringTable, stringTableHashes);
 							fileMetadata[currentFileName]->typeName = findInStringTable(pfil.indexType, stringTable, stringTableHashes);
 							fileMetadata[currentFileName]->fileSize = pfil.totalFileSize;
+							fileMetadata[currentFileName]->dateStamp = pfil.dayCreated;
 
 							(*fileMetadata[currentFileName])[pfil.chunkNumber] = {
 								.chunkByteOffset = pfil.chunkOffset,
@@ -345,7 +349,26 @@ namespace jmmt::fs {
 			if(auto procesRet = processPackageChunks(mHeaderBuffer.get(), metadata.chunkDataSize, stringTable, stringTableHashes); procesRet != PakFileSystem::Success)
 				return procesRet;
 
+			publicFileMetadata.setLambda([&]() -> std::unordered_map<std::string, PakFileSystem::Metadata> {
+				std::printf("computing public metadata\n");
+				std::unordered_map<std::string, PakFileSystem::Metadata> meta;
+				for(auto& [k, v] : fileMetadata) {
+					meta[k] = {
+						.sourceName = (*v).sourceName,
+						.sourceConvertName = (*v).sourceConvertName,
+						.sourceCompressName = (*v).sourceCompressName,
+						.fileSize = (*v).fileSize,
+						.dateStamp = (*v).dateStamp
+					};
+				}
+				return meta;
+			});
+
 			return PakFileSystem::Success;
+		}
+
+		const std::unordered_map<std::string, PakFileSystem::Metadata>& getMetadataImpl() {
+			return publicFileMetadata.get();
 		}
 
 		FileHandle openFileImpl(std::string_view path) {
@@ -390,6 +413,10 @@ namespace jmmt::fs {
 
 	PakFileSystem::Error PakFileSystem::initialize() {
 		return impl->initializeImpl();
+	}
+
+	const std::unordered_map<std::string, PakFileSystem::Metadata>& PakFileSystem::getMetadata() {
+		return impl->getMetadataImpl();
 	}
 
 	PakFileSystem::FileHandle PakFileSystem::openFile(const std::string_view path) {

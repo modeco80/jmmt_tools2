@@ -12,6 +12,7 @@ add_library(jmmt_lib
 
 	# Package filesystem
 	fs/pak_filesystem.cpp
+	fs/pak_file_stream.cpp
 
 	# PS2 library
 	ps2/vif.cpp
@@ -50,6 +51,10 @@ add_executable(fstest fs/fstest.cpp)
 jmmt_target(fstest)
 target_link_libraries(fstest PUBLIC
     jmmt::libjmmt
+    # While libjmmt links in mcolib implicitly,
+    # I think it's better to specify it here
+    mco::base
+    mco::io
 )
 
 add_subdirectory(tests)
