@@ -52,6 +52,7 @@ namespace jmmt::fs {
 		i32 readSome(FileHandle file, void* pBuffer, u32 size);
 		i32 seekFile(FileHandle file, i32 offset, SeekOrigin origin);
 		i32 tellFile(FileHandle file);
+		u32 getFileSize(FileHandle file);
 		void closeFile(FileHandle file);
 
 	};

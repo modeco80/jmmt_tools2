@@ -2,6 +2,8 @@
 #include <jmmt/fs/game_filesystem.hpp>
 #include <jmmt/fs/pak_filesystem.hpp>
 #include "mco/io/file_stream.hpp"
+#include "mco/io/stream_utils.hpp"
+#include <jmmt/fs/pak_file_stream.hpp>
 
 int main() {
 	auto fs = jmmt::fs::createGameFileSystem(std::filesystem::current_path());
@@ -14,7 +16,7 @@ int main() {
 		// }
 
 		printf("Opening config.pak\n");
-		auto pak = fs->openPackageFile("SF_san_fran.pak");
+		auto pak = fs->openPackageFile("config.pak");
 		if(!pak) {
 			printf("Couldn't open\n");
 			return 0;
@@ -24,24 +26,10 @@ int main() {
 			printf("file %s (%d bytes, datestamp 0x%08x)\n", k.c_str(), v.fileSize, v.dateStamp);
 		}
 
-#if 0
-		auto fh = pak->openFile("text/strings.csv");
-		if(fh != -1) {
-			auto outFile = mco::FileStream::open("strings.csv", mco::FileStream::ReadWrite | mco::FileStream::Create);
-			while(true) {
-				u8 buffer[2048] {};
-				auto n = pak->readSome(fh, &buffer[0], 2048);
-				if(n == 0) {
-					break;
-				}
-				outFile.write(&buffer[0], n);
-			}
-
-			outFile.close();
-		} else {
-			std::printf("Couldn't open file\n");
-		}
-#endif
+		auto inStream = jmmt::fs::PakFileStream::open(pak, "text/strings.csv");
+		auto outFile = mco::FileStream::open("strings2.csv", mco::FileStream::ReadWrite | mco::FileStream::Create);
+		mco::teeStreams(inStream, outFile, inStream.getSize());
+		outFile.close();
 	} else {
 		printf("Not a JMMT game root\n");
 	}

@@ -206,6 +206,10 @@ namespace jmmt::fs {
 		u32 tell() const {
 			return currentByteOffset;
 		}
+
+		u32 getFileSize() const {
+			return metadata.fileSize;
+		}
 	};
 
 	/// The max amount of files that can be open in the package filesystem. This is an implementation detail,
@@ -400,6 +404,14 @@ namespace jmmt::fs {
 			return -1;
 		}
 
+
+		u32 getFileSizeImpl(FileHandle file) {
+			if(auto filePtr = openFiles.dereferenceHandle(file); filePtr) {
+				return filePtr->getFileSize();
+			}
+			return -1;
+		}
+
 		void closeFileImpl(FileHandle file) {
 			openFiles.freeObject(file);
 		}
@@ -433,6 +445,10 @@ namespace jmmt::fs {
 
 	i32 PakFileSystem::tellFile(FileHandle file) {
 		return impl->tellFileImpl(file);
+	}
+
+	u32 PakFileSystem::getFileSize(FileHandle file) {
+		return impl->getFileSizeImpl(file);
 	}
 
 	void PakFileSystem::closeFile(FileHandle file) {
