@@ -29,6 +29,8 @@ namespace jmmt::fs {
 		u32 nChunks;
 		ChunkMetadata* pChunkMetaEntries;
 
+		// TODO: Should these be optional? The only hash that should always exist
+		// (and does) is the file name itself, which this struct doesn't store
 		std::string sourceName;
 		std::string sourceConvertName;
 		std::string sourceCompressName;
@@ -59,7 +61,8 @@ namespace jmmt::fs {
 		}
 	};
 
-	/// A package file.
+	/// A opened package file. This class isn't exposed to users directly,
+	/// but rather via handles. See PakFileSystem::Impl for what i mean.
 	class PakFile {
 		/// The metadata for this file.
 		const FileMetadata& metadata;
@@ -70,17 +73,20 @@ namespace jmmt::fs {
 		/// A 64k buffer which we read the raw chunk data buffer from the file into.
 		Unique<u8[]> chunkReadBuffer;
 
-		/// A file stream with the .pak file.
+		/// A file stream with the .pak file opened
 		mco::FileStream packageFileStream;
 
-		// The current active chunk.
+		/// The current active chunk.
 		u16 currentChunk;
 
-		// byte offset in the chunk
+		/// byte offset in the chunk
 		u32 currentChunkByteOffset;
+
+		/// The size of the chunk
 		u32 currentChunkByteSize;
 
-		// current byte offset in the file.
+		/// current byte offset in the file.
+		/// (essentially seek pointer)
 		u32 currentByteOffset;
 
 		u32 findChunkIndex(u32 offset, u32 numChunks) {
@@ -105,7 +111,7 @@ namespace jmmt::fs {
 		}
 
 		void advanceToChunk(u32 chunkIndex) {
-			// dont switch chunks
+			// don't advance if it's out of range
 			if(chunkIndex > metadata.nChunks)
 				return;
 			currentChunk = chunkIndex;
@@ -147,7 +153,7 @@ namespace jmmt::fs {
 	   public:
 		explicit PakFile(const FileMetadata& metadata, mco::FileStream&& fileStream)
 			: metadata(metadata), packageFileStream(std::move(fileStream)) {
-			// Allocate temporary buffers.
+			// Allocate work buffers.
 			chunkBuffer = std::make_unique<u8[]>(65536);
 			chunkReadBuffer = std::make_unique<u8[]>(65536);
 
@@ -212,11 +218,11 @@ namespace jmmt::fs {
 		}
 	};
 
-	/// The max amount of files that can be open in the package filesystem. This is an implementation detail,
-	/// and thus is not exposed externally.
+	/// The max amount of files that can be open in the package filesystem.
+	/// This is an implementation detail, and thus is not exposed externally.
 	constexpr static usize MaxFileCount = 32;
 
-	/// freelist allocator type for files.
+	/// Freelist for package files.
 	using FileFreeList = impl::FreeListAllocator<PakFile, MaxFileCount>;
 
 	/// Read except not really.
@@ -228,14 +234,14 @@ namespace jmmt::fs {
 		return ret;
 	}
 
-	std::string findInStringTable(u32 nHash, const std::vector<std::string>& stringTable, const std::vector<u32>& stringTableHashes) {
+	std::string findStringHash(u32 nHash, const std::vector<std::string>& stringTable, const std::vector<u32>& stringTableHashes) {
 		for(auto i = 0; i < stringTable.size(); ++i) {
 			if(nHash == stringTableHashes[i]) {
 				return stringTable[i];
 				break;
 			}
 		}
-		return "Not found in string table???";
+		return "";
 	}
 
 	class PakFileSystem::Impl {
@@ -286,14 +292,14 @@ namespace jmmt::fs {
 
 						if(pfil.chunkNumber == 0) {
 							// Find the filename in the string table hashes.
-							currentFileName = findInStringTable(pfil.indexName, stringTable, stringTableHashes);
+							currentFileName = findStringHash(pfil.indexName, stringTable, stringTableHashes);
 
 							// Create metadata for this file.
 							fileMetadata.emplace(currentFileName, std::make_unique<FileMetadata>(pfil.chunkCount));
-							fileMetadata[currentFileName]->sourceName = findInStringTable(pfil.indexSourceName, stringTable, stringTableHashes);
-							fileMetadata[currentFileName]->sourceConvertName = findInStringTable(pfil.indexSourceConvertName, stringTable, stringTableHashes);
-							fileMetadata[currentFileName]->sourceCompressName = findInStringTable(pfil.indexSourceCompressName, stringTable, stringTableHashes);
-							fileMetadata[currentFileName]->typeName = findInStringTable(pfil.indexType, stringTable, stringTableHashes);
+							fileMetadata[currentFileName]->sourceName = findStringHash(pfil.indexSourceName, stringTable, stringTableHashes);
+							fileMetadata[currentFileName]->sourceConvertName = findStringHash(pfil.indexSourceConvertName, stringTable, stringTableHashes);
+							fileMetadata[currentFileName]->sourceCompressName = findStringHash(pfil.indexSourceCompressName, stringTable, stringTableHashes);
+							fileMetadata[currentFileName]->typeName = findStringHash(pfil.indexType, stringTable, stringTableHashes);
 							fileMetadata[currentFileName]->fileSize = pfil.totalFileSize;
 							fileMetadata[currentFileName]->dateStamp = pfil.dayCreated;
 
@@ -316,7 +322,7 @@ namespace jmmt::fs {
 					} break;
 
 					default:
-						// invalid type.
+						// Invalid type, just fail.
 						return PakFileSystem::InitProcessChunksFailure;
 				}
 			}
@@ -350,11 +356,10 @@ namespace jmmt::fs {
 			}
 
 			// propagate the error
-			if(auto procesRet = processPackageChunks(mHeaderBuffer.get(), metadata.chunkDataSize, stringTable, stringTableHashes); procesRet != PakFileSystem::Success)
-				return procesRet;
+			if(auto processRet = processPackageChunks(mHeaderBuffer.get(), metadata.chunkDataSize, stringTable, stringTableHashes); processRet != PakFileSystem::Success)
+				return processRet;
 
-			publicFileMetadata.setLambda([&]() -> std::unordered_map<std::string, PakFileSystem::Metadata> {
-				std::printf("computing public metadata\n");
+			publicFileMetadata.setLambda([&]() {
 				std::unordered_map<std::string, PakFileSystem::Metadata> meta;
 				for(auto& [k, v] : fileMetadata) {
 					meta[k] = {
@@ -403,7 +408,6 @@ namespace jmmt::fs {
 			}
 			return -1;
 		}
-
 
 		u32 getFileSizeImpl(FileHandle file) {
 			if(auto filePtr = openFiles.dereferenceHandle(file); filePtr) {
