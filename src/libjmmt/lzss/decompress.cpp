@@ -9,6 +9,9 @@
 #define LZSS_THRESHOLD 2
 #define LZSS_STALLBIT (30)
 
+// FIXME: Use mco::(Write)Stream. This would be more comfortable to use.
+// This probably would require mcolib MemoryStream support leasing memory.
+
 #define LZSS_GETBYTE(in, inb, out)                                          \
 	do {                                                                    \
 		if((inb) <= (nInputBufferIndex))                                    \
@@ -25,12 +28,11 @@
 *(outp)++ = (uint8_t)(outb)
 
 #define LZSS_PUTBYTE(outp, outb) *(outp)++ = (uint8_t)(outb)
-
 #define FileIO_ZeroMemory(dst, size) memset(dst, 0, size)
 
 namespace jmmt::lzss {
 
-	int lzssDecompress(structs::LzssHeader* header, const u8* compressedInput, i32 compressedLength, u8* destBuffer) {
+	int decompress(structs::LzssHeader* header, const u8* compressedInput, i32 compressedLength, u8* destBuffer) {
 		int32_t nRingIndex, nInSize, nInputBufferIndex, nRingBits, nRingSize;
 		uint8_t aRingBuffer[LZSS_DEFAULT_RINGSIZE], *pRingBuffer;
 		uint32_t nBitFlags = 0;

@@ -171,8 +171,10 @@ namespace jmmt::fs {
 		Ref<PakFileSystem> openPackageFileImpl(Ref<GameFileSystem> that, const std::string& packageFileName) {
 			if(auto it = metadata.find(packageFileName); it != metadata.end()) {
 				auto sp = std::make_shared<PakFileSystem>(that, it->second, packageFileName);
-				if(!sp->initialize())
+				if(auto ec = sp->initialize(); ec != PakFileSystem::Success) {
+					printf("error code %d\n", ec);
 					return nullptr;
+				}
 				return sp;
 			}
 

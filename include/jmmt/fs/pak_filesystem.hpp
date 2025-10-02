@@ -17,15 +17,26 @@ namespace jmmt::fs {
 				SeekEnd
 		};
 
+		enum Error {
+			// init errors
+			Success = 0,
+			InitReadChunkFailure = 1,
+			InitReadStringTableFailure = 2,
+			InitProcessChunksFailure = 3,
+
+			FileNotExist = -1,
+		};
+
 		explicit PakFileSystem(Ref<GameFileSystem> fs, const PackageMetadata& metadata, const std::string& fileName);
 		~PakFileSystem();
 
-		bool initialize();
+		Error initialize();
 
 		/// Opens a new pak file.
 		FileHandle openFile(const std::string_view path);
-		i64 readSome(FileHandle file, void* pBuffer, u64 size);
-		i64 seekFile(FileHandle file, i64 offset, SeekOrigin origin);
+		i32 readSome(FileHandle file, void* pBuffer, u32 size);
+		i32 seekFile(FileHandle file, i32 offset, SeekOrigin origin);
+		i32 tellFile(FileHandle file);
 		void closeFile(FileHandle file);
 	};
 
