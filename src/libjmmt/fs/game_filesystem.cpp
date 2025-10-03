@@ -9,14 +9,6 @@
 
 namespace jmmt::fs {
 
-	bool doesFolderExist(const std::filesystem::path& root, const std::string_view folderName) {
-		return std::filesystem::is_directory(root / folderName);
-	}
-
-	bool doesFileExist(const std::filesystem::path& path, const std::string_view fileName) {
-		return std::filesystem::is_regular_file(path / fileName);
-	}
-
 	const std::string_view getTypeFolderName(GameFileSystem::FileType type) {
 		switch(type) {
 			case GameFileSystem::FileData: return "DATA";
@@ -70,10 +62,10 @@ namespace jmmt::fs {
 			// First, check for folders in the root directory that should always exist.
 			// If any of these fail, then we are probably not in a JMMT game root,
 			// and thus we can't reliably detect any version of the game.
-			if(!doesFolderExist(rootPath, "DATA") ||
-			   !doesFolderExist(rootPath, "IRX") ||
-			   !doesFolderExist(rootPath, "MOVIES") ||
-			   !doesFolderExist(rootPath, "MUSIC"))
+			if(!std::filesystem::is_directory(rootPath / "DATA") ||
+			   !std::filesystem::is_directory(rootPath / "IRX") ||
+			   !std::filesystem::is_directory(rootPath / "MOVIES") ||
+			   !std::filesystem::is_directory(rootPath / "MUSIC"))
 				return std::nullopt;
 
 			// Probe for a game version.
@@ -81,7 +73,7 @@ namespace jmmt::fs {
 			// happen to be discovered. I doubt that'll happen, but futureproofing...
 			forEachGameVersion([&](GameVersion version) {
 				const auto slusName = getVersionSlusName(version);
-				if(doesFileExist(rootPath, slusName)) {
+				if(std::filesystem::is_regular_file(rootPath / slusName)) {
 					// We found a canidate ELF filename which matches a version.
 					auto str = (rootPath /slusName).string();
 					auto stream = mco::FileStream::open(str.c_str());
@@ -172,7 +164,6 @@ namespace jmmt::fs {
 			if(auto it = metadata.find(packageFileName); it != metadata.end()) {
 				auto sp = std::make_shared<PakFileSystem>(that, it->second, packageFileName);
 				if(auto ec = sp->initialize(); ec != PakFileSystem::Success) {
-					printf("error code %d\n", ec);
 					return nullptr;
 				}
 				return sp;
