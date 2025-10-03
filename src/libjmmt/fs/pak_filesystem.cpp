@@ -380,7 +380,7 @@ namespace jmmt::fs {
 			return publicFileMetadata.get();
 		}
 
-		FileHandle openFileImpl(std::string_view path) {
+		FileHandle fileOpenImpl(std::string_view path) {
 			if(auto it = fileMetadata.find(std::string(path)); it != fileMetadata.end()) {
 				auto file = gameFs->openFile(pakFilename, GameFileSystem::FileData);
 				return openFiles.allocateObject(*it->second, std::move(file));
@@ -388,35 +388,35 @@ namespace jmmt::fs {
 			return -1;
 		}
 
-		i32 readSomeImpl(FileHandle file, void* pBuffer, u32 size) {
+		i32 fileReadImpl(FileHandle file, void* pBuffer, u32 size) {
 			if(auto filePtr = openFiles.dereferenceHandle(file); filePtr) {
 				return filePtr->read(pBuffer, size);
 			}
 			return -1;
 		}
 
-		i32 seekFileImpl(FileHandle file, i32 offset, SeekOrigin origin) {
+		i32 fileSeekImpl(FileHandle file, i32 offset, SeekOrigin origin) {
 			if(auto filePtr = openFiles.dereferenceHandle(file); filePtr) {
 				return filePtr->seek(offset, origin);
 			}
 			return -1;
 		}
 
-		i32 tellFileImpl(FileHandle file) {
+		i32 fileTellImpl(FileHandle file) {
 			if(auto filePtr = openFiles.dereferenceHandle(file); filePtr) {
 				return filePtr->tell();
 			}
 			return -1;
 		}
 
-		u32 getFileSizeImpl(FileHandle file) {
+		u32 fileGetSizeImpl(FileHandle file) {
 			if(auto filePtr = openFiles.dereferenceHandle(file); filePtr) {
 				return filePtr->getFileSize();
 			}
 			return -1;
 		}
 
-		void closeFileImpl(FileHandle file) {
+		void fileCloseImpl(FileHandle file) {
 			openFiles.freeObject(file);
 		}
 	};
@@ -435,28 +435,28 @@ namespace jmmt::fs {
 		return impl->getMetadataImpl();
 	}
 
-	PakFileSystem::FileHandle PakFileSystem::openFile(const std::string_view path) {
-		return impl->openFileImpl(path);
+	PakFileSystem::FileHandle PakFileSystem::fileOpen(const std::string_view path) {
+		return impl->fileOpenImpl(path);
 	}
 
-	i32 PakFileSystem::readSome(FileHandle file, void* pBuffer, u32 size) {
-		return impl->readSomeImpl(file, pBuffer, size);
+	i32 PakFileSystem::fileRead(FileHandle file, void* pBuffer, u32 size) {
+		return impl->fileReadImpl(file, pBuffer, size);
 	}
 
-	i32 PakFileSystem::seekFile(FileHandle file, i32 offset, SeekOrigin origin) {
-		return impl->seekFileImpl(file, offset, origin);
+	i32 PakFileSystem::fileSeek(FileHandle file, i32 offset, SeekOrigin origin) {
+		return impl->fileSeekImpl(file, offset, origin);
 	}
 
-	i32 PakFileSystem::tellFile(FileHandle file) {
-		return impl->tellFileImpl(file);
+	i32 PakFileSystem::fileTell(FileHandle file) {
+		return impl->fileTellImpl(file);
 	}
 
-	u32 PakFileSystem::getFileSize(FileHandle file) {
-		return impl->getFileSizeImpl(file);
+	u32 PakFileSystem::fileGetSize(FileHandle file) {
+		return impl->fileGetSizeImpl(file);
 	}
 
-	void PakFileSystem::closeFile(FileHandle file) {
-		return impl->closeFileImpl(file);
+	void PakFileSystem::fileClose(FileHandle file) {
+		return impl->fileCloseImpl(file);
 	}
 
 } // namespace jmmt::fs

@@ -48,12 +48,12 @@ namespace jmmt::fs {
 		const std::unordered_map<std::string, PakFileSystem::Metadata>& getMetadata();
 
 		/// Opens a new pak file.
-		FileHandle openFile(const std::string_view path);
-		i32 readSome(FileHandle file, void* pBuffer, u32 size);
-		i32 seekFile(FileHandle file, i32 offset, SeekOrigin origin);
-		i32 tellFile(FileHandle file);
-		u32 getFileSize(FileHandle file);
-		void closeFile(FileHandle file);
+		FileHandle fileOpen(const std::string_view path);
+		i32 fileRead(FileHandle file, void* pBuffer, u32 size);
+		i32 fileSeek(FileHandle file, i32 offset, SeekOrigin origin);
+		i32 fileTell(FileHandle file);
+		u32 fileGetSize(FileHandle file);
+		void fileClose(FileHandle file);
 
 	};
 

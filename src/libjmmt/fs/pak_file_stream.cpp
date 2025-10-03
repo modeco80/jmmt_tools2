@@ -3,7 +3,7 @@
 namespace jmmt::fs {
 
 	PakFileStream PakFileStream::open(Ref<PakFileSystem> fs, const std::string_view fileName) {
-		if(auto fd = fs->openFile(fileName); fd != PakFileSystem::FileNotExist) {
+		if(auto fd = fs->fileOpen(fileName); fd != PakFileSystem::FileNotExist) {
 			return PakFileStream(fs, fd);
 		}
 		throw std::runtime_error("Attempt to open package file which doesn't exist");
@@ -16,14 +16,25 @@ namespace jmmt::fs {
 
 	PakFileStream::PakFileStream(Ref<PakFileSystem> fs, PakFileSystem::FileHandle pakFd)
 		: pakFs(fs), pakFd(pakFd) {
-		size = pakFs->getFileSize(pakFd);
+		size = pakFs->fileGetSize(pakFd);
+	}
+
+	PakFileStream::PakFileStream(PakFileStream&& mv) {
+		pakFs = mv.pakFs;
+		pakFd = mv.pakFd;
+		mv.pakFs.reset();
+		mv.pakFd = -1;
+	}
+
+	PakFileStream::~PakFileStream() {
+		pakFs->fileClose(pakFd);
 	}
 
 	u64 PakFileStream::read(void* buffer, u64 length) {
 		if(!buffer || length == 0)
 			return 0;
 
-		return pakFs->readSome(pakFd, buffer, length);
+		return pakFs->fileRead(pakFd, buffer, length);
 	}
 
 	bool PakFileStream::isRandomAccess() const noexcept {
@@ -31,7 +42,7 @@ namespace jmmt::fs {
 	}
 
 	i64 PakFileStream::tell() {
-		return pakFs->tellFile(pakFd);
+		return pakFs->fileTell(pakFd);
 	}
 
 	i64 PakFileStream::seek(i64 offset, Whence whence) {
@@ -41,7 +52,7 @@ namespace jmmt::fs {
 			case Stream::Current: pakWhence = PakFileSystem::SeekCurrent; break;
 			case Stream::End: pakWhence = PakFileSystem::SeekEnd; break;
 		}
-		return pakFs->seekFile(pakFd, offset, pakWhence);
+		return pakFs->fileSeek(pakFd, offset, pakWhence);
 	}
 
 	u64 PakFileStream::getSize() {

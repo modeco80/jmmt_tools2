@@ -22,6 +22,10 @@ namespace jmmt::fs {
 		/// Creates a [PakFileStream] from a pak file system and file handle.
 		static PakFileStream fromPakHandle(Ref<PakFileSystem> fs, PakFileSystem::FileHandle handle);
 
+		PakFileStream(const PakFileStream&) = delete;
+		PakFileStream(PakFileStream&&);
+		~PakFileStream();
+
 		/// Read some data from the stream
 		/// Returns the amount of bytes taken from the stream.
 		u64 read(void* buffer, u64 length) override;
