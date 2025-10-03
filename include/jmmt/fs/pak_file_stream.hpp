@@ -19,9 +19,6 @@ namespace jmmt::fs {
 		/// Opens a file and creates a stream on it.
 		static PakFileStream open(Ref<PakFileSystem> fs, const std::string_view fileName);
 
-		/// Creates a [PakFileStream] from a pak file system and file handle.
-		static PakFileStream fromPakHandle(Ref<PakFileSystem> fs, PakFileSystem::FileHandle handle);
-
 		PakFileStream(const PakFileStream&) = delete;
 		PakFileStream(PakFileStream&&);
 		~PakFileStream();

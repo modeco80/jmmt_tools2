@@ -9,11 +9,6 @@ namespace jmmt::fs {
 		throw std::runtime_error("Attempt to open package file which doesn't exist");
 	}
 
-	PakFileStream PakFileStream::fromPakHandle(Ref<PakFileSystem> fs, PakFileSystem::FileHandle handle) {
-		// Second order construction is a placeholder for EH.
-		return PakFileStream(fs, handle);
-	}
-
 	PakFileStream::PakFileStream(Ref<PakFileSystem> fs, PakFileSystem::FileHandle pakFd)
 		: pakFs(fs), pakFd(pakFd) {
 		size = pakFs->fileGetSize(pakFd);

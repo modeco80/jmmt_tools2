@@ -36,6 +36,7 @@ namespace jmmt::fs {
 			InitReadStringTableFailure = 2,
 			InitProcessChunksFailure = 3,
 
+			// fileOpen errors
 			FileNotExist = -1,
 		};
 
@@ -49,10 +50,20 @@ namespace jmmt::fs {
 
 		/// Opens a new pak file.
 		FileHandle fileOpen(const std::string_view path);
+
+		/// Reads data from a previously-opened package file.
 		i32 fileRead(FileHandle file, void* pBuffer, u32 size);
+
+		/// Sets the seek pointer of a pak file.
 		i32 fileSeek(FileHandle file, i32 offset, SeekOrigin origin);
+
+		/// Obtains the seek pointer of a pak file.
 		i32 fileTell(FileHandle file);
+
+		/// Obtains the size of a opened pak file.
 		u32 fileGetSize(FileHandle file);
+
+		/// Closes a previously-owned pak file.
 		void fileClose(FileHandle file);
 
 	};

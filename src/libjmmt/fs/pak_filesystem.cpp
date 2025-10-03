@@ -276,6 +276,7 @@ namespace jmmt::fs {
 				if(auto n = temporaryRead(chunkStream, &chunkId, sizeof(chunkId)); n != sizeof(chunkId))
 					return PakFileSystem::InitProcessChunksFailure;
 
+				// Process each chunk type.
 				switch(chunkId) {
 					case structs::PackageGroupHeader::MAGIC: {
 						// might be nice to provide this?
@@ -334,7 +335,7 @@ namespace jmmt::fs {
 			auto file = gameFs->openFile(pakFilename, GameFileSystem::FileData);
 			Unique<u8[]> mHeaderBuffer = std::make_unique<u8[]>(metadata.chunkDataSize);
 
-			// Read the package chunk data into a data buffer. We'll process these in a second.
+			// Read the package chunk data into a data buffer for later processing.
 			file.seek(metadata.chunkStartOffset, mco::Stream::Begin);
 			if(auto n = file.read(&mHeaderBuffer[0], metadata.chunkDataSize); n != metadata.chunkDataSize) {
 				// This should never short read. If it does this indicates a problem with the file data
@@ -355,10 +356,12 @@ namespace jmmt::fs {
 				stringTableHashes[i] = jmmt::hashString(stringTable[i]);
 			}
 
-			// propagate the error
+			// Now process the chunk data we read. If this fails, we also propegate the error.
 			if(auto processRet = processPackageChunks(mHeaderBuffer.get(), metadata.chunkDataSize, stringTable, stringTableHashes); processRet != PakFileSystem::Success)
 				return processRet;
 
+			// Setup a callback for the lazily computed public file metadata to create it
+			// once a api user actually bothers to call getMetadata().
 			publicFileMetadata.setLambda([&]() {
 				std::unordered_map<std::string, PakFileSystem::Metadata> meta;
 				for(auto& [k, v] : fileMetadata) {
