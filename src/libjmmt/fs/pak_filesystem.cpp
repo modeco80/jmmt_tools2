@@ -62,7 +62,8 @@ namespace jmmt::fs {
 	};
 
 	/// A opened package file. This class isn't exposed to users directly,
-	/// but rather via handles. See PakFileSystem::Impl for what i mean.
+	/// but rather its methods can be called via handles.
+	/// See PakFileSystem::Impl for what I mean.
 	class PakFile {
 		/// The metadata for this file.
 		const FileMetadata& metadata;
@@ -76,20 +77,20 @@ namespace jmmt::fs {
 		/// A file stream with the .pak file opened
 		mco::FileStream packageFileStream;
 
-		/// The current active chunk.
+		/// The index of the currently active chunk.
 		u16 currentChunk;
 
-		/// byte offset in the chunk
+		/// Byte offset in the chunk
 		u32 currentChunkByteOffset;
 
-		/// The size of the chunk
+		/// The size of the chunk. (cached from metadata)
 		u32 currentChunkByteSize;
 
 		/// current byte offset in the file.
-		/// (essentially seek pointer)
+		/// (essentially a file-wide seek pointer)
 		u32 currentByteOffset;
 
-		u32 findChunkIndex(u32 offset, u32 numChunks) {
+		u32 findChunkIndex(u32 offset) {
 			u32 cumulativeOffset = 0;
 
 			for(u32 i = 0; i < metadata.nChunks; ++i) {
@@ -123,11 +124,13 @@ namespace jmmt::fs {
 			// Cache the uncompressed size of the chunk.
 			currentChunkByteSize = metadata[currentChunk].chunkUncompressedSize;
 
-			// Read the chunk data from the package file into memory.
+			// Read the chunk data from the package file into the read buffer.
 			packageFileStream.seek(metadata[currentChunk].chunkDataOffset, mco::Stream::Begin);
 			packageFileStream.read(&chunkReadBuffer[0], metadata[currentChunk].chunkDataSize);
 
-			// Act appropiately depending on if the chunk data is compressed or not
+			// Act appropiately depending on if the chunk data is compressed or not.
+			// For compressed chunks, we do LZSS decompression.
+			// For uncompressed chunks, we just memcpy() the chunk data out.
 			if(metadata[currentChunk].compressed) {
 				lzss::decompress(nullptr, &chunkReadBuffer[0], metadata[currentChunk].chunkDataSize, &chunkBuffer[0]);
 			} else {
@@ -136,16 +139,16 @@ namespace jmmt::fs {
 		}
 
 		/// Helper to seek to a byte offset. seek() builds upon this
-		/// to implement the fully-featured seek function.
+		/// to implement the fully-featured random-access seeking.
 		void seekOffset(u32 offset) {
 			if(offset >= metadata.fileSize)
 				return;
 
-			// Don't switch the current chunk unless we have to.
-			if(auto chunkIndex = findChunkIndex(offset, metadata.nChunks); chunkIndex != currentChunk)
+			// Don't switch the current chunk unless the byte offset implies that we have to.
+			if(auto chunkIndex = findChunkIndex(offset); chunkIndex != currentChunk)
 				advanceToChunk(chunkIndex);
 
-			// Set state once we've done that
+			// Set the various seek pointers to correct values.
 			currentByteOffset = offset;
 			currentChunkByteOffset = offset - getChunkTotalSize(currentChunk);
 		}
@@ -157,7 +160,7 @@ namespace jmmt::fs {
 			chunkBuffer = std::make_unique<u8[]>(65536);
 			chunkReadBuffer = std::make_unique<u8[]>(65536);
 
-			// Reset state and initalize the first chunk.
+			// Reset state and read the first chunk.
 			currentByteOffset = 0;
 			advanceToChunk(0);
 		}
@@ -190,6 +193,9 @@ namespace jmmt::fs {
 
 		i32 seek(i32 offset, PakFileSystem::SeekOrigin whence) {
 			u32 computedOffset;
+
+			// Based on the whence, commpute an final byte offset that
+			// we can call the seekOffset() function with.
 			switch(whence) {
 				case PakFileSystem::SeekBegin:
 					computedOffset = offset;
@@ -202,9 +208,11 @@ namespace jmmt::fs {
 					break;
 			}
 
+			// Make sure the computed offset is valid.
 			if(computedOffset < 0 || computedOffset > metadata.fileSize)
 				return -1;
 
+			// Do the seek.
 			seekOffset(computedOffset);
 			return computedOffset;
 		}
@@ -297,29 +305,24 @@ namespace jmmt::fs {
 
 							// Create metadata for this file.
 							fileMetadata.emplace(currentFileName, std::make_unique<FileMetadata>(pfil.chunkCount));
+
+							// Fill in metadata.
 							fileMetadata[currentFileName]->sourceName = findStringHash(pfil.indexSourceName, stringTable, stringTableHashes);
 							fileMetadata[currentFileName]->sourceConvertName = findStringHash(pfil.indexSourceConvertName, stringTable, stringTableHashes);
 							fileMetadata[currentFileName]->sourceCompressName = findStringHash(pfil.indexSourceCompressName, stringTable, stringTableHashes);
 							fileMetadata[currentFileName]->typeName = findStringHash(pfil.indexType, stringTable, stringTableHashes);
 							fileMetadata[currentFileName]->fileSize = pfil.totalFileSize;
 							fileMetadata[currentFileName]->dateStamp = pfil.dayCreated;
-
-							(*fileMetadata[currentFileName])[pfil.chunkNumber] = {
-								.chunkByteOffset = pfil.chunkOffset,
-								.chunkDataOffset = pfil.dataOffset,
-								.chunkDataSize = pfil.dataSize,
-								.chunkUncompressedSize = pfil.chunkSize,
-								.compressed = pfil.chunkSize != pfil.dataSize
-							};
-						} else {
-							(*fileMetadata[currentFileName])[pfil.chunkNumber] = {
-								.chunkByteOffset = pfil.chunkOffset,
-								.chunkDataOffset = pfil.dataOffset,
-								.chunkDataSize = pfil.dataSize,
-								.chunkUncompressedSize = pfil.chunkSize,
-								.compressed = pfil.chunkSize != pfil.dataSize
-							};
 						}
+
+						// Fill in the chunk in the file metadata.
+						(*fileMetadata[currentFileName])[pfil.chunkNumber] = {
+							.chunkByteOffset = pfil.chunkOffset,
+							.chunkDataOffset = pfil.dataOffset,
+							.chunkDataSize = pfil.dataSize,
+							.chunkUncompressedSize = pfil.chunkSize,
+							.compressed = pfil.chunkSize != pfil.dataSize
+						};
 					} break;
 
 					default:

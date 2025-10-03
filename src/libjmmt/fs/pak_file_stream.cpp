@@ -33,7 +33,7 @@ namespace jmmt::fs {
 	}
 
 	bool PakFileStream::isRandomAccess() const noexcept {
-			return true;
+		return true;
 	}
 
 	i64 PakFileStream::tell() {
@@ -43,9 +43,15 @@ namespace jmmt::fs {
 	i64 PakFileStream::seek(i64 offset, Whence whence) {
 		PakFileSystem::SeekOrigin pakWhence;
 		switch(whence) {
-			case Stream::Begin: pakWhence = PakFileSystem::SeekBegin; break;
-			case Stream::Current: pakWhence = PakFileSystem::SeekCurrent; break;
-			case Stream::End: pakWhence = PakFileSystem::SeekEnd; break;
+			case Stream::Begin:
+				pakWhence = PakFileSystem::SeekBegin;
+				break;
+			case Stream::Current:
+				pakWhence = PakFileSystem::SeekCurrent;
+				break;
+			case Stream::End:
+				pakWhence = PakFileSystem::SeekEnd;
+				break;
 		}
 		return pakFs->fileSeek(pakFd, offset, pakWhence);
 	}
@@ -54,7 +60,7 @@ namespace jmmt::fs {
 		return size;
 	}
 
-	bool PakFileStream::hasEnded()  {
+	bool PakFileStream::hasEnded() {
 		return tell() == size;
 	}
-}
+} // namespace jmmt::fs
