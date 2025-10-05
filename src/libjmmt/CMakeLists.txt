@@ -47,14 +47,4 @@ target_link_libraries(vifdis_test PUBLIC
     jmmt::libjmmt
 )
 
-add_executable(fstest fs/fstest.cpp)
-jmmt_target(fstest)
-target_link_libraries(fstest PUBLIC
-    jmmt::libjmmt
-    # While libjmmt links in mcolib implicitly,
-    # I think it's better to specify it here
-    mco::base
-    mco::io
-)
-
 add_subdirectory(tests)
