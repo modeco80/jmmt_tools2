@@ -5,8 +5,9 @@
 
 namespace jmmt::impl {
 
-	/// A very simple freelist allocator.
-	template<class T, usize MaxSize>
+	/// A very simple freelist allocator. Holds a bucket of memory
+	/// and allows objects of a given type to be allocated and retrieved from it.
+	template<class T, u32 MaxSize>
 	class FreeListAllocator {
 		std::bitset<MaxSize> freeBitSet;
 		T* objectMemory;
@@ -14,11 +15,12 @@ namespace jmmt::impl {
 		/// A handle to an object in the freelist allocator.
 		using Handle = i32;
 
-		/// A invalid handle.
+		/// An invalid handle.
 		constexpr static Handle InvalidHandle = -1;
 
 		FreeListAllocator() {
 			objectMemory = reinterpret_cast<T*>(malloc(MaxSize * sizeof(T)));
+			std::memset(reinterpret_cast<void*>(&objectMemory[0]), 0, MaxSize * sizeof(T));
 		}
 
 		// Freelist allocators cannot be relocated. However, the only consumer of this code
@@ -32,36 +34,40 @@ namespace jmmt::impl {
 		}
 
 		void clear() {
-			// For all bits in freeSet which are set (indicating the object slot is in use):
-			// - Call T::~T().
+			Handle handlesToClear[MaxSize];
+			u32 nHandles = 0;
+
+			// Find all allocated objects.
 			for (usize i = 0; i < freeBitSet.size(); ++i) {
 				if (freeBitSet[i]) {
-					freeBitSet[i] = false;
-					objectMemory[i].~T();
+					handlesToClear[nHandles++] = i;
 				}
 			}
+
+			// Clear them.
+			for(u32 i = 0; i < nHandles; ++i)
+				freeObject(handlesToClear[i]);
 		}
 
 		template<class ...Args>
 		Handle allocateObject(Args&&... args) {
 			// Find any free position.
 			for (usize i = 0; i < freeBitSet.size(); ++i) {
+				// Construct the object in the memory, and then return the handle.
 				if (!freeBitSet[i]) {
 					freeBitSet[i] = true;
-					// Construct the object in the memory, and then return the handle.
-					std::memset(&objectMemory[i], 0, sizeof(T));
 					new (&objectMemory[i]) T(static_cast<Args&&>(args)...);
 					return i;
 				}
 			}
 
-			// No free slots.
+			// There are no free slots, so give up and return an invalid handle.
 			return InvalidHandle;
 		}
 
-		/// Dereference an handle, obtaining a pointer to an object
+		/// Dereference an handle, obtaining a concrete pointer to an object.
 		T* dereferenceHandle(Handle handle) {
-			if(handle == InvalidHandle)
+			if(handle == InvalidHandle && handle > MaxSize)
 				return nullptr;
 
 			// If this object is actually allocated, then return a pointer to its memory
@@ -73,9 +79,9 @@ namespace jmmt::impl {
 			return nullptr;
 		}
 
-		/// Free a object pointed to by handle.
+		/// Free a object pointed to by [handle].
 		void freeObject(Handle handle) {
-			if(handle == InvalidHandle)
+			if(handle == InvalidHandle && handle > MaxSize)
 				return;
 
 			// If the handle is actually dereferenceable to an allocated object..
@@ -84,6 +90,9 @@ namespace jmmt::impl {
 				// can provide the same handle.
 				freeBitSet[handle] = false;
 				objectMemory[handle].~T();
+
+				// Zero the memory once the object is freed.
+				std::memset(reinterpret_cast<void*>(&objectMemory[handle]), 0, sizeof(T));
 			}
 		}
 	};
