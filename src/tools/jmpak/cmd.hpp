@@ -11,14 +11,15 @@ namespace jmpak {
 
 		// data
 		char cmd;
-		void(*helpImpl)();
-		i32(*runImpl)(int argc, char** argv);
-	public:
+		void (*helpImpl)();
+		i32 (*runImpl)(int argc, char** argv);
+
+	   public:
 		static std::optional<Command*> find(char cmd);
 
-		static void forEachImpl(bool(*pfn)(Command* command, void* user), void* user);
+		static void forEachImpl(bool (*pfn)(Command* command, void* user), void* user);
 
-		template<class F>
+		template <class F>
 		static void forEach(F&& fn) {
 			struct CbState {
 				F fn;
@@ -26,10 +27,11 @@ namespace jmpak {
 
 			forEachImpl([](Command* command, void* user) {
 				return reinterpret_cast<CbState*>(user)->fn(command);
-			}, &state);
+			},
+						&state);
 		}
 
-		Command(char cmd, void(*helpFn)(), i32(*runFn)(int argc, char** argv));
+		Command(char cmd, void (*helpFn)(), i32 (*runFn)(int argc, char** argv));
 
 		void help() {
 			return helpImpl();
@@ -38,7 +40,6 @@ namespace jmpak {
 		i32 run(int argc, char** argv) {
 			return runImpl(argc, argv);
 		}
-
 	};
 
-}
+} // namespace jmpak

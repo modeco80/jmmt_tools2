@@ -1,6 +1,6 @@
 #pragma once
-#include <mco/base_types.hpp>
 #include <jmmt/fs/package_metadata.hpp>
+#include <mco/base_types.hpp>
 #include <unordered_map>
 
 namespace jmmt::fs {
@@ -9,7 +9,8 @@ namespace jmmt::fs {
 	class PakFileSystem : public std::enable_shared_from_this<PakFileSystem> {
 		struct Impl;
 		Unique<Impl> impl;
-	public:
+
+	   public:
 		using FileHandle = i32;
 
 		/// Public metadata.
@@ -24,9 +25,9 @@ namespace jmmt::fs {
 		};
 
 		enum SeekOrigin {
-				SeekBegin = 0,
-				SeekCurrent,
-				SeekEnd
+			SeekBegin = 0,
+			SeekCurrent,
+			SeekEnd
 		};
 
 		enum Error {
@@ -65,7 +66,6 @@ namespace jmmt::fs {
 
 		/// Closes a previously-owned pak file.
 		void fileClose(FileHandle file);
-
 	};
 
-}
+} // namespace jmmt::fs

@@ -1,10 +1,10 @@
 #pragma once
 #include <filesystem>
+#include <jmmt/fs/package_metadata.hpp>
 #include <jmmt/game_version.hpp>
 #include <mco/base_types.hpp>
-#include <mco/pimple_container.hpp>
-#include <jmmt/fs/package_metadata.hpp>
 #include <mco/io/file_stream.hpp>
+#include <mco/pimple_container.hpp>
 #include <unordered_map>
 
 namespace jmmt::fs {

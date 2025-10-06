@@ -4,7 +4,7 @@ namespace jmpak {
 
 	static Command* pCommandHead = nullptr;
 
-	void Command::forEachImpl(bool(*pfn)(Command* command, void* user), void* user) {
+	void Command::forEachImpl(bool (*pfn)(Command* command, void* user), void* user) {
 		if(pCommandHead == nullptr)
 			return;
 
@@ -32,7 +32,7 @@ namespace jmpak {
 		return std::nullopt;
 	};
 
-	Command::Command(char cmd, void(*helpFn)(), i32(*runFn)(int argc, char** argv)) {
+	Command::Command(char cmd, void (*helpFn)(), i32 (*runFn)(int argc, char** argv)) {
 		// assign things
 		this->cmd = cmd;
 		this->helpImpl = helpFn;
@@ -50,4 +50,4 @@ namespace jmpak {
 		}
 	}
 
-}
+} // namespace jmpak

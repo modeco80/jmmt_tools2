@@ -1,15 +1,15 @@
 #include <cstdio>
+
 #include "cmd.hpp"
 
 /// Usage function.
 void mainUsage(char* progname) {
 	std::printf(
-		"jmpak - LibJMMT package tool (c) 2025 modeco80\n"
-		"Usage: %s [command] [arguments...]\n"
-		"Commands:\n",
+	"jmpak - LibJMMT package tool (c) 2025 modeco80\n"
+	"Usage: %s [command] [arguments...]\n"
+	"Commands:\n",
 
-		progname
-	);
+	progname);
 
 	// Call help of each command.
 	jmpak::Command::forEach([](jmpak::Command* cmd) {
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 
 	// Run the command.
 	if(auto cmd = jmpak::Command::find(argv[1][0]); cmd.has_value()) {
-		auto ret = (*cmd)->run(argc-2, argv+2);
+		auto ret = (*cmd)->run(argc - 2, argv + 2);
 		if(ret != 0) {
 			mainUsage(argv[0]);
 		}

@@ -1,9 +1,10 @@
 #include <filesystem>
+#include <jmmt/crc.hpp>
 #include <jmmt/fs/game_filesystem.hpp>
+#include <jmmt/impl/sha256.hpp>
 #include <jmmt/structs/package_toc.hpp>
 #include <mco/io/file_stream.hpp>
-#include <jmmt/impl/sha256.hpp>
-#include <jmmt/crc.hpp>
+
 #include "jmmt/fs/pak_filesystem.hpp"
 #include "jmmt/game_version.hpp"
 
@@ -11,11 +12,16 @@ namespace jmmt::fs {
 
 	const std::string_view getTypeFolderName(GameFileSystem::FileType type) {
 		switch(type) {
-			case GameFileSystem::FileData: return "DATA";
-			case GameFileSystem::FileIrx: return "IRX";
-			case GameFileSystem::FileMovies: return "MOVIES";
-			case GameFileSystem::FileMusic: return "MUSIC";
-			default: return "";
+			case GameFileSystem::FileData:
+				return "DATA";
+			case GameFileSystem::FileIrx:
+				return "IRX";
+			case GameFileSystem::FileMovies:
+				return "MOVIES";
+			case GameFileSystem::FileMusic:
+				return "MUSIC";
+			default:
+				return "";
 		}
 	}
 
@@ -41,8 +47,8 @@ namespace jmmt::fs {
 	/// This class wraps the logic of detecting the version of the JMMT game
 	/// that is being opened by the GameFileSystem implementation.
 	class GameDetector {
-		std::filesystem::path rootPath{};
-		GameVersion detectedVersion{};
+		std::filesystem::path rootPath {};
+		GameVersion detectedVersion {};
 		bool detected = false;
 
 		void setDetectedVersion(GameVersion version) {
@@ -75,7 +81,7 @@ namespace jmmt::fs {
 				const auto slusName = getVersionSlusName(version);
 				if(std::filesystem::is_regular_file(rootPath / slusName)) {
 					// We found a canidate ELF filename which matches a version.
-					auto str = (rootPath /slusName).string();
+					auto str = (rootPath / slusName).string();
 					auto stream = mco::FileStream::open(str.c_str());
 					auto hash = impl::sha256Digest(stream);
 					if(hash == *getVersionHash(version)) {

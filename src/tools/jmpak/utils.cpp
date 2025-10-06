@@ -16,4 +16,4 @@ namespace jmpak {
 
 		return ptr;
 	}
-}
+} // namespace jmpak

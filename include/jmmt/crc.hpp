@@ -11,4 +11,4 @@ namespace jmmt {
 	/// Hash a string (case-sensitive version).
 	Crc32Result hashStringCase(std::string_view str);
 
-}
+} // namespace jmmt

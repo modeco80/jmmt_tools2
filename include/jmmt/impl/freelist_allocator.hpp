@@ -1,17 +1,18 @@
 #pragma once
-#include <mco/base_types.hpp>
 #include <bitset>
 #include <cstring>
+#include <mco/base_types.hpp>
 
 namespace jmmt::impl {
 
 	/// A very simple freelist allocator. Holds a bucket of memory
 	/// and allows objects of a given type to be allocated and retrieved from it.
-	template<class T, u32 MaxSize>
+	template <class T, u32 MaxSize>
 	class FreeListAllocator {
 		std::bitset<MaxSize> freeBitSet;
 		T* objectMemory;
-	public:
+
+	   public:
 		/// A handle to an object in the freelist allocator.
 		using Handle = i32;
 
@@ -38,8 +39,8 @@ namespace jmmt::impl {
 			u32 nHandles = 0;
 
 			// Find all allocated objects.
-			for (usize i = 0; i < freeBitSet.size(); ++i) {
-				if (freeBitSet[i]) {
+			for(usize i = 0; i < freeBitSet.size(); ++i) {
+				if(freeBitSet[i]) {
 					handlesToClear[nHandles++] = i;
 				}
 			}
@@ -49,14 +50,14 @@ namespace jmmt::impl {
 				freeObject(handlesToClear[i]);
 		}
 
-		template<class ...Args>
+		template <class... Args>
 		Handle allocateObject(Args&&... args) {
 			// Find any free position.
-			for (usize i = 0; i < freeBitSet.size(); ++i) {
+			for(usize i = 0; i < freeBitSet.size(); ++i) {
 				// Construct the object in the memory, and then return the handle.
-				if (!freeBitSet[i]) {
+				if(!freeBitSet[i]) {
 					freeBitSet[i] = true;
-					new (&objectMemory[i]) T(static_cast<Args&&>(args)...);
+					new(&objectMemory[i]) T(static_cast<Args&&>(args)...);
 					return i;
 				}
 			}
@@ -97,5 +98,4 @@ namespace jmmt::impl {
 		}
 	};
 
-
-}
+} // namespace jmmt::impl

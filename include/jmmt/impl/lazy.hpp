@@ -8,21 +8,22 @@ namespace jmmt::impl {
 	template <class T>
 	class Lazy {
 		class ImplData {
-		public:
+		   public:
 			virtual ~ImplData() = default;
 			virtual const T& get() = 0;
 		};
 
 		Unique<ImplData> data;
-	   public:
 
+	   public:
 		/// Sets this lazy instance to use a lambda function.
-		template<class F>
+		template <class F>
 		void setLambda(F&& f) {
 			class Impl : public ImplData {
 				F fun;
 				std::optional<T> t;
-			public:
+
+			   public:
 				explicit Impl(F&& f)
 					: fun(static_cast<F&&>(f)) {
 				}

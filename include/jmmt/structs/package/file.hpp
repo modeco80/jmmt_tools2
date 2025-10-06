@@ -44,4 +44,4 @@ namespace jmmt::structs {
 	};
 
 	mcoAssertSize(PackageFileHeader, 0x64);
-}
+} // namespace jmmt::structs

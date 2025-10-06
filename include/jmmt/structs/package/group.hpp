@@ -17,4 +17,4 @@ namespace jmmt::structs {
 	};
 
 	mcoAssertSize(PackageGroupHeader, 0x10);
-}
+} // namespace jmmt::structs

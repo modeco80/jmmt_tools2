@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Given a list of directories as arguments, this script finds .cpp/.hpp files
+# and runs clang-format on them.
+
+while [[ "$1" != "" ]]; do
+	echo "zzz$1"
+	find $1 -type f -iname '*.cpp' -or -iname '*.hpp' -exec clang-format -i {} \; -print
+	shift
+done

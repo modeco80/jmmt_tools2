@@ -19,4 +19,4 @@ namespace jmmt::structs {
 	};
 
 	mcoAssertSize(LzssHeader, 0x20);
-}
+} // namespace jmmt::structs

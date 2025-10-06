@@ -1,8 +1,9 @@
 #include <cstdio>
 #include <jmmt/fs/pak_filesystem.hpp>
 #include <mco/utils.hpp>
-#include "utils.hpp"
+
 #include "cmd.hpp"
+#include "utils.hpp"
 
 namespace jmpak {
 
