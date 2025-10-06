@@ -1,40 +1,40 @@
 #include <cstdio>
+#include "cmd.hpp"
 
-// commands
-namespace jmpak {
-	int commandExtractFile(int argc, char** argv);
-	int commandExtractPackage(int argc, char** argv);
-	int commandList(int argc, char** argv);
-	int commandListPaks();
-}
-
-void usage(char* progname) {
+/// Usage function.
+void mainUsage(char* progname) {
 	std::printf(
-		"jmpak: jmmt package tool\n"
-		"Usage: %s [command] [arguments...]\n",
+		"jmpak - LibJMMT package tool (c) 2025 modeco80\n"
+		"Usage: %s [command] [arguments...]\n"
+		"Commands:\n",
+
 		progname
 	);
+
+	// Call help of each command.
+	jmpak::Command::forEach([](jmpak::Command* cmd) {
+		cmd->help();
+		return true;
+	});
 }
 
 int main(int argc, char** argv) {
 	// we need a command to run
 	if(argc < 2) {
-		usage(argv[0]);
+		mainUsage(argv[0]);
 		return 1;
 	}
 
-	switch(argv[1][0]) {
-		case 'e':
-			break;
-		case 'x':
-			break;
-		case 'l':
-			return jmpak::commandList(argc-2, argv+2);
-		case 'L':
-			return jmpak::commandListPaks();
+	// Run the command.
+	if(auto cmd = jmpak::Command::find(argv[1][0]); cmd.has_value()) {
+		auto ret = (*cmd)->run(argc-2, argv+2);
+		if(ret != 0) {
+			mainUsage(argv[0]);
+		}
+		return ret;
 	}
 
-	printf("unimplemented command %c\n", argv[1][0]);
-	usage(argv[0]);
+	printf("Error: Unknown command '%c'.\n", argv[1][0]);
+	mainUsage(argv[0]);
 	return 1;
 }

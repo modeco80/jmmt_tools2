@@ -1,21 +1,32 @@
 #include <cstdio>
-#include "cmd.hpp"
 #include <jmmt/fs/pak_filesystem.hpp>
 #include <mco/utils.hpp>
+#include "utils.hpp"
+#include "cmd.hpp"
+
 namespace jmpak {
 
-	class ListCommandImpl {
-	public:
-		int run(const char* fileName) {
+	namespace {
+		void commandListHelp() {
+			std::printf("l [pakfile] - Lists all files in the requested pakfile\n");
+		}
+
+		int commandList(int argc, char** argv) {
+			// We expect a single argument, the packfile to list
+			if(argc != 1) {
+				std::printf("no packfile given\n");
+				return 1;
+			}
+
 			auto fs = getGameFileSystem();
 			if(!fs) {
 				std::printf("filesystem initalization failure\n");
 				return 1;
 			}
 
-			auto pak = fs->openPackageFile(fileName);
+			auto pak = fs->openPackageFile(argv[0]);
 			if(!pak) {
-				std::printf("could not open package file \"%s\"\n", fileName);
+				std::printf("could not open package file \"%s\"\n", argv[0]);
 				return 1;
 			}
 
@@ -25,17 +36,7 @@ namespace jmpak {
 
 			return 0;
 		}
-	};
+	} // namespace
 
-	int commandList(int argc, char** argv) {
-		// We expect a single argument, the packfile to list
-		if(argc != 1) {
-			std::printf("no packfile given\n");
-			return 1;
-		}
-
-		auto listCmd = ListCommandImpl();
-		return listCmd.run(argv[0]);
-	}
-
-}
+	static Command cmdList('l', &commandListHelp, &commandList);
+} // namespace jmpak

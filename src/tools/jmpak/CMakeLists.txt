@@ -1,6 +1,8 @@
 add_executable(jmpak
-	# command helpers
+	# command class
 	cmd.cpp
+	# utils
+	utils.cpp
 	# commands
 	cmd_list.cpp
 	cmd_listpaks.cpp
