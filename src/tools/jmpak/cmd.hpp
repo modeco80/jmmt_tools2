@@ -33,6 +33,10 @@ namespace jmpak {
 
 		Command(char cmd, void (*helpFn)(), i32 (*runFn)(int argc, char** argv));
 
+		char getCommandCharacter() const {
+			return cmd;
+		}
+
 		void help() {
 			return helpImpl();
 		}

@@ -13,6 +13,7 @@ void mainUsage(char* progname) {
 
 	// Call help of each command.
 	jmpak::Command::forEach([](jmpak::Command* cmd) {
+		std::printf("%c - ", cmd->getCommandCharacter());
 		cmd->help();
 		return true;
 	});

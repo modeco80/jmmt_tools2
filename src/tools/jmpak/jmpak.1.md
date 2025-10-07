@@ -19,7 +19,7 @@ jmpak - extract, list JMMT package files.
 
 **jmpak** **l** *PACKFILE*
 
-**jmpak** **L**
+**jmpak** **i**
 
 # DESCRIPTION
 
@@ -44,6 +44,6 @@ as the root path of the JMMT filesystem for it to work with.
 
 *PACKFILE* must be specified as a non-positional argument. It is the path of the packfile to list information and files from.
 
-## LIST FILESYSTEM PACKFILES ('L')
+## LIST FILESYSTEM INFRORMATION ('i')
 
 No arguments are specified to this command.

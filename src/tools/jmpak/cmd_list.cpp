@@ -9,7 +9,7 @@ namespace jmpak {
 
 	namespace {
 		void commandListHelp() {
-			std::printf("l [pakfile] - Lists all files in the requested pakfile\n");
+			std::printf("Lists all files in the requested pakfile\n");
 		}
 
 		int commandList(int argc, char** argv) {
