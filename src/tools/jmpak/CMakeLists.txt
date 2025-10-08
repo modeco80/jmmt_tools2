@@ -4,6 +4,7 @@ add_executable(jmpak
 	# utils
 	utils.cpp
 	# commands
+	cmd_extractall.cpp
 	cmd_list.cpp
 	cmd_fsinfo.cpp
 	# driver program
