@@ -1,8 +1,14 @@
+#define USE_V2_FREELIST
+
 #include <jmmt/crc.hpp>
 #include <jmmt/fourcc.hpp>
 #include <jmmt/fs/game_filesystem.hpp>
 #include <jmmt/fs/pak_filesystem.hpp>
+#ifdef USE_V2_FREELIST
+#include <jmmt/impl/freelist_allocator_v2.hpp>
+#else
 #include <jmmt/impl/freelist_allocator.hpp>
+#endif
 #include <jmmt/impl/lazy.hpp>
 #include <jmmt/lzss/decompress.hpp>
 #include <jmmt/structs/package/file.hpp>

@@ -14,10 +14,12 @@ namespace jmpak {
 		void (*helpImpl)();
 		i32 (*runImpl)(int argc, char** argv);
 
-	   public:
-		static std::optional<Command*> find(char cmd);
-
 		static void forEachImpl(bool (*pfn)(Command* command, void* user), void* user);
+
+	   public:
+
+		/// Finds a command. Returns nullopt or a pointer to the command.
+		static std::optional<Command*> find(char cmd);
 
 		template <class F>
 		static void forEach(F&& fn) {
