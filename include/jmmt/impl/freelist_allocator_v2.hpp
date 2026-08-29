@@ -5,49 +5,126 @@
 
 namespace jmmt::impl {
 
+	/// Base bucket pool class.
+	class FreeListBucketPool {
+	protected:
+		u8** ppObjectPointers;
+	public:
+
+		/// Constructor. Allocates a [maxObjects] * [objectSize] pool of memory
+		/// which can be used for the freelist. Inheritors have access to the [ppObjectPointers]
+		/// pointer array, which is initalized by this constructor to point to each object slot.
+		FreeListBucketPool(usize maxObjects, usize objectSize);
+
+		FreeListBucketPool(const FreeListBucketPool&) = delete;
+		FreeListBucketPool(FreeListBucketPool&&) = delete; // No relocation (?)
+
+		~FreeListBucketPool();
+	};
+
+	/// Shim over [FreeListBucketPool] to make it typed.
+	template<class T>
+	class FreeListTypedBucketPool : FreeListBucketPool
+	{
+	public:
+		explicit FreeListTypedBucketPool(usize maxObjects)
+			: FreeListBucketPool(maxObjects, sizeof(T)) {
+		}
+
+	protected:
+		inline T* getPointer(usize index) const {
+			return reinterpret_cast<T*>(ppObjectPointers[index]);
+		}
+
+		template <class... Args>
+		inline void constructObject(usize index, Args&&... args) {
+			auto* pObject = getPointer(index);
+			std::memset(pObject, 0, sizeof(T));
+			new(pObject) T(static_cast<Args&&>(args)...);
+		}
+
+		inline void destructObject(usize index) {
+			auto* pObject = getPointer(index);
+			pObject->~T();
+			std::memset(pObject, 0, sizeof(T));
+		}
+	};
+
+	/// A handle to an object in the freelist allocator.
+	using FreeListObjectHandle = i32;
+
+	/// An invalid handle.
+	constexpr static FreeListObjectHandle InvalidHandle = -1;
+
+	/// The actual freelist bucket.
+	template<class T, usize MaxSize>
+	class FreeListBucket : public FreeListTypedBucketPool<T> {
+		std::bitset<MaxSize> allocatedSet;
+	public:
+
+		T* getObjectPointer(u32 index) {
+			if(!allocatedSet[index])
+				return nullptr;
+
+			return FreeListTypedBucketPool<T>::getPointer(index);
+		}
+
+		template <class... Args>
+		i32 allocateObject(Args&&... args) {
+			// Find any free position.
+			for(usize i = 0; i < MaxSize; ++i) {
+				// Construct the object in the memory, and then return the handle.
+				if(!allocatedSet[i]) {
+					FreeListTypedBucketPool<T>::constructObject(i, static_cast<Args&&>(args)...);
+					allocatedSet[i] = true;
+					return i;
+				}
+			}
+
+			return InvalidHandle;
+		}
+
+		void freeObject(FreeListObjectHandle handle) {
+			// If the handle is actually dereferenceable to an allocated object..
+			if(allocatedSet[handle]) {
+				// Free the object. Another allocateObject() call
+				// can provide the same handle.
+				FreeListTypedBucketPool<T>::destructObject(handle);
+				allocatedSet[handle] = false;
+			}
+		}
+
+		void clear() {
+			FreeListObjectHandle handlesToClear[MaxSize];
+			u32 nHandles = 0;
+
+			// Find all allocated objects.
+			for(usize i = 0; i < MaxSize; ++i) {
+				if(allocatedSet[i]) {
+					handlesToClear[nHandles++] = i;
+				}
+			}
+
+			// Clear them.
+			for(u32 i = 0; i < nHandles; ++i)
+				freeObject(handlesToClear[i]);
+		}
+
+		FreeListBucket()
+		: FreeListTypedBucketPool<T>(MaxSize) {
+		}
+
+		~FreeListBucket() {
+			clear();
+		}
+	};
+
 	/// A very simple freelist allocator. Holds bits of memory
 	/// and allows objects of a given type to be allocated and retrieved from it.
 	template <class T, u32 MaxSize>
 	class FreeListAllocator {
-		// TODO: It might be possible to make this part not template code.
-		// I'm not sure of the utility of that, but it might help compile times?
-		// I'll look into it.
-		struct BucketInfo {
-			std::bitset<MaxSize> allocatedSet;
-			T* objectPointers[MaxSize];
-
-			// NOTE: You must placement new in the memory here,
-			// this function doesn't start lifetime.
-			T* getObjectPointer(u32 index) {
-				std::memset(reinterpret_cast<void*>(objectPointers[index]), 0, sizeof(T));
-				return objectPointers[index];
-			}
-
-			BucketInfo() {
-				// Allocate a pool of memory that the objects will be allocated inside.
-				u8* pBase = reinterpret_cast<u8*>(malloc(MaxSize * sizeof(T)));
-
-				// Set up object pointers.
-				for(u32 i = 0; i < MaxSize; ++i) {
-					objectPointers[i] = reinterpret_cast<T*>(&pBase[i * sizeof(T)]);
-				}
-			}
-
-			~BucketInfo() {
-				// Note that objectPointers[0] is always the same as the base pointer
-				// (which malloc() itself returned), so freeing it is valid.
-				free(objectPointers[0]);
-			}
-		};
-
-		BucketInfo* pBucketInfo = nullptr;
-
-	   public:
-		/// A handle to an object in the freelist allocator.
-		using Handle = i32;
-
-		/// An invalid handle.
-		constexpr static Handle InvalidHandle = -1;
+		FreeListBucket<T, MaxSize>* pBucket = nullptr;
+	public:
 
 		FreeListAllocator() = default;
 
@@ -62,90 +139,45 @@ namespace jmmt::impl {
 
 		void clear() {
 			// Nothing to clear.
-			if(!pBucketInfo)
+			if(!pBucket)
 				return;
 
-			Handle handlesToClear[MaxSize];
-			u32 nHandles = 0;
-
-			// Find all allocated objects.
-			for(usize i = 0; i < pBucketInfo->allocatedSet.size(); ++i) {
-				if(pBucketInfo->allocatedSet[i]) {
-					handlesToClear[nHandles++] = i;
-				}
-			}
-
-			// Clear them.
-			for(u32 i = 0; i < nHandles; ++i)
-				freeObject(handlesToClear[i]);
-
-			delete pBucketInfo;
-			pBucketInfo = nullptr;
+			delete pBucket;
+			pBucket = nullptr;
 		}
 
 		template <class... Args>
-		Handle allocateObject(Args&&... args) {
-			// If bucket information hasn't been allocated beforehand,
-			// do so.
-			if(!pBucketInfo) {
-				pBucketInfo = new BucketInfo();
+		FreeListObjectHandle allocateObject(Args&&... args) {
+			// Allocate the bucket if it hasn't been allocated before.
+			if(!pBucket) {
+				pBucket = new FreeListBucket<T, MaxSize>();
 			}
 
-			// Find any free position.
-			for(usize i = 0; i < pBucketInfo->allocatedSet.size(); ++i) {
-				// Construct the object in the memory, and then return the handle.
-				if(!pBucketInfo->allocatedSet[i]) {
-					pBucketInfo->allocatedSet[i] = true;
-					new(pBucketInfo->getObjectPointer(i)) T(static_cast<Args&&>(args)...);
-					return i;
-				}
-			}
-
-			// There are no free slots, so give up and return an invalid handle.
-			return InvalidHandle;
+			return pBucket->allocateObject(static_cast<Args&&>(args)...);
 		}
 
 		/// Dereference an handle, obtaining a concrete pointer to an object.
-		T* dereferenceHandle(Handle handle) {
+		T* dereferenceHandle(FreeListObjectHandle handle) {
 			if(handle == InvalidHandle)
 				return nullptr;
 
 			if(handle > MaxSize)
 				return nullptr;
 
-			if(!pBucketInfo)
+			if(!pBucket)
 				return nullptr;
-
-			// If this object is actually allocated, then return a pointer to its memory
-			// (i.e: actually deref the handle). Otherwise, return a null pointer, to indicate failure.
-			if(pBucketInfo->allocatedSet[handle]) {
-				return pBucketInfo->objectPointers[handle];
-			}
-
-			return nullptr;
+			return pBucket->getObjectPointer(handle);
 		}
 
 		/// Free a object pointed to by [handle].
-		void freeObject(Handle handle) {
+		void freeObject(FreeListObjectHandle handle) {
 			if(handle == InvalidHandle)
 				return;
-
 			if(handle > MaxSize)
 				return;
-
-			if(!pBucketInfo)
+			if(!pBucket)
 				return;
-
-			// If the handle is actually dereferenceable to an allocated object..
-			if(pBucketInfo->allocatedSet[handle]) {
-				// Free the object. Another allocateObject() call
-				// can provide the same handle.
-				pBucketInfo->allocatedSet[handle] = false;
-				pBucketInfo->objectPointers[handle]->~T();
-
-				// Zero the memory once the object is freed.
-				std::memset(reinterpret_cast<void*>(pBucketInfo->objectPointers[handle]), 0, sizeof(T));
-			}
+			pBucket->freeObject(handle);
 		}
 	};
 

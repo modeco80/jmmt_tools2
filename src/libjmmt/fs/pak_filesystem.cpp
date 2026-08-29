@@ -16,6 +16,7 @@
 #include <mco/io/file_stream.hpp>
 #include <mco/io/memory_stream.hpp>
 #include <unordered_map>
+#include <cstring>
 
 namespace jmmt::fs {
 

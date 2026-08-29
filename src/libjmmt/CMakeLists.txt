@@ -2,6 +2,9 @@
 add_library(jmmt_lib
 	game_version.cpp
 
+	# impl
+	impl/freelist_allocator.cpp
+
 	crc.cpp
 
 	# LZSS
