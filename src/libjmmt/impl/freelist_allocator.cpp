@@ -1,4 +1,4 @@
-#include <jmmt/impl/freelist_allocator_v2.hpp>
+#include <jmmt/impl/freelist_allocator.hpp>
 
 namespace jmmt::impl {
 
