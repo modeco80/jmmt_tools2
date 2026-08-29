@@ -1,11 +1,11 @@
 #pragma once
 #include <array>
-#include <jmmt/fixed_string.hpp>
+#include <mco/fixed_string.hpp>
 #include <mco/base_types.hpp>
 
 namespace jmmt::impl {
 	/// Converts a hex string into a fixed buffer at compile time.
-	template <FixedString inputHexString>
+	template <mco::FixedString inputHexString>
 	consteval auto hexToBuffer() {
 		if(auto evenTest = inputHexString.length() % 2; evenTest != 0) {
 			throw "invalid input";

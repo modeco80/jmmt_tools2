@@ -46,5 +46,3 @@ jmmt_target(vifdis_test)
 target_link_libraries(vifdis_test PUBLIC
     jmmt::libjmmt
 )
-
-add_subdirectory(tests)

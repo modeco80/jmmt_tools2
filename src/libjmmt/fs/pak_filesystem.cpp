@@ -1,7 +1,6 @@
 #define USE_V2_FREELIST
 
 #include <jmmt/crc.hpp>
-#include <jmmt/fourcc.hpp>
 #include <jmmt/fs/game_filesystem.hpp>
 #include <jmmt/fs/pak_filesystem.hpp>
 #ifdef USE_V2_FREELIST
@@ -263,7 +262,7 @@ namespace jmmt::fs {
 		PackageMetadata metadata;
 		std::string pakFilename;
 
-		structs::PackageGroupHeader packageGroup;
+		structs::PackageGroupChunk packageGroup;
 
 		std::unordered_map<std::string, Unique<FileMetadata>> fileMetadata;
 		impl::Lazy<std::unordered_map<std::string, PakFileSystem::Metadata>> publicFileMetadata;
@@ -286,22 +285,22 @@ namespace jmmt::fs {
 
 			while(!chunkStream.hasEnded()) {
 				// Read the chunk id and seek back so we can figure out what chunk it is.
-				FourCC chunkId {};
+				mco::FourCC chunkId {};
 				if(auto n = temporaryRead(chunkStream, &chunkId, sizeof(chunkId)); n != sizeof(chunkId))
 					return PakFileSystem::InitProcessChunksFailure;
 
 				// Process each chunk type.
 				switch(chunkId) {
-					case structs::PackageGroupHeader::MAGIC: {
+					case structs::PackageGroupChunk::CHUNK_ID: {
 						// might be nice to provide this?
-						structs::PackageGroupHeader groupHeader {};
+						structs::PackageGroupChunk groupHeader {};
 						if(auto n = chunkStream.read(&groupHeader, sizeof(groupHeader)); n != sizeof(groupHeader))
 							return PakFileSystem::InitProcessChunksFailure;
 						std::memcpy(&this->packageGroup, &groupHeader, sizeof(groupHeader));
 					} break;
 
-					case structs::PackageFileHeader::MAGIC: {
-						structs::PackageFileHeader pfil {};
+					case structs::PackageFileChunk::CHUNK_ID: {
+						structs::PackageFileChunk pfil {};
 						if(auto n = chunkStream.read(&pfil, sizeof(pfil)); n != sizeof(pfil))
 							return PakFileSystem::InitProcessChunksFailure;
 

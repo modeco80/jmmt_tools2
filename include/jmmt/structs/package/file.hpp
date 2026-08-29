@@ -1,13 +1,13 @@
 #pragma once
-#include <jmmt/fourcc.hpp>
+#include <mco/fourcc.hpp>
 #include <jmmt/structs/lzss.hpp>
 
 namespace jmmt::structs {
 
-	struct PackageFileHeader {
-		constexpr static auto MAGIC = FourCCGenerator<>::generate<"PFIL">();
+	struct PackageFileChunk {
+		constexpr static auto CHUNK_ID = mco::FourCCGenerator<>::generate<"PFIL">();
 
-		FourCC magic;
+		mco::FourCC ckId;
 
 		// This is a seperate struct in the official game.
 		u8 versionMajor;
@@ -43,5 +43,5 @@ namespace jmmt::structs {
 		LzssHeader lzssHeader; // Unused by the game
 	};
 
-	mcoAssertSize(PackageFileHeader, 0x64);
+	mcoAssertSize(PackageFileChunk, 0x64);
 } // namespace jmmt::structs

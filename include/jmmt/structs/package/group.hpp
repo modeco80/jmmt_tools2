@@ -1,10 +1,10 @@
 #pragma once
-#include <jmmt/fourcc.hpp>
+#include <mco/fourcc.hpp>
 
 namespace jmmt::structs {
-	struct PackageGroupHeader {
-		constexpr static auto MAGIC = FourCCGenerator<>::generate<"PGRP">();
-		FourCC magic;
+	struct PackageGroupChunk {
+		constexpr static auto CHUNK_ID = mco::FourCCGenerator<>::generate<"PGRP">();
+		mco::FourCC ckId;
 
 		/// Hash name of the name of this group.
 		u32 indexName;
@@ -16,5 +16,5 @@ namespace jmmt::structs {
 		u32 flagsMask;
 	};
 
-	mcoAssertSize(PackageGroupHeader, 0x10);
+	mcoAssertSize(PackageGroupChunk, 0x10);
 } // namespace jmmt::structs
