@@ -7,7 +7,6 @@ namespace jmmt::impl {
 
 	/// A very simple freelist allocator. Holds bits of memory
 	/// and allows objects of a given type to be allocated and retrieved from it.
-	/// Reuses memory so heap shouldn't get too fragmented either.
 	template <class T, u32 MaxSize>
 	class FreeListAllocator {
 		// TODO: It might be possible to make this part not template code.
@@ -19,27 +18,25 @@ namespace jmmt::impl {
 
 			// NOTE: You must placement new in the memory here,
 			// this function doesn't start lifetime.
-			T* mallocObject(u32 index) {
-				if(!objectPointers[index]) {
-					objectPointers[index] = reinterpret_cast<T*>(malloc(sizeof(T)));
-					std::memset(reinterpret_cast<void*>(objectPointers[index]), 0, sizeof(T));
-				}
+			T* getObjectPointer(u32 index) {
+				std::memset(reinterpret_cast<void*>(objectPointers[index]), 0, sizeof(T));
 				return objectPointers[index];
 			}
 
-			// NOTE: This function does not call destructors, it's expected that
-			// the calling code can appropiately clean up the bucket data beforehand.
-			void freeObject(u32 index) {
-				if(objectPointers[index]) {
-					free(objectPointers[index]);
-					objectPointers[index] = nullptr;
+			BucketInfo() {
+				// Allocate a pool of memory that the objects will be allocated inside.
+				u8* pBase = reinterpret_cast<u8*>(malloc(MaxSize * sizeof(T)));
+
+				// Set up object pointers.
+				for(u32 i = 0; i < MaxSize; ++i) {
+					objectPointers[i] = reinterpret_cast<T*>(&pBase[i * sizeof(T)]);
 				}
 			}
 
 			~BucketInfo() {
-				for(auto i = 0; i < MaxSize; ++i) {
-					freeObject(i);
-				}
+				// Note that objectPointers[0] is always the same as the base pointer
+				// (which malloc() itself returned), so freeing it is valid.
+				free(objectPointers[0]);
 			}
 		};
 
@@ -64,6 +61,10 @@ namespace jmmt::impl {
 		}
 
 		void clear() {
+			// Nothing to clear.
+			if(!pBucketInfo)
+				return;
+
 			Handle handlesToClear[MaxSize];
 			u32 nHandles = 0;
 
@@ -95,7 +96,7 @@ namespace jmmt::impl {
 				// Construct the object in the memory, and then return the handle.
 				if(!pBucketInfo->allocatedSet[i]) {
 					pBucketInfo->allocatedSet[i] = true;
-					new(pBucketInfo->mallocObject(i)) T(static_cast<Args&&>(args)...);
+					new(pBucketInfo->getObjectPointer(i)) T(static_cast<Args&&>(args)...);
 					return i;
 				}
 			}
