@@ -293,9 +293,11 @@ void hexDump(const void* data, usize size) {
 			ascii[i % 16] = '.';
 		}
 		if((i + 1) % 8 == 0 || i + 1 == size) {
+
 			printf(" ");
 			if((i + 1) % 16 == 0) {
 				printf("|  %s \n", ascii);
+				printf("%08x ", i+1);
 			} else if(i + 1 == size) {
 				ascii[(i + 1) % 16] = '\0';
 				if((i + 1) % 16 <= 8) {
@@ -305,23 +307,32 @@ void hexDump(const void* data, usize size) {
 					printf("   ");
 				}
 				printf("|  %s \n", ascii);
+
 			}
 		}
 	}
 }
 
+// very cheap itof12 for one lane at a time.
+float cheapItof12(u16 value) {
+	return static_cast<float>(value) / 4096.f;
+}
+
 int main() {
+	hexDump(&testPacket[0], sizeof(testPacket));
+
 	jmmt::ps2::vifDisassemble(&testPacket[0], sizeof(testPacket));
 
-#if 0
+#if 1
 	// test the vif emulator
-	jmmt::ps2::Vif vif;
-	vif.cycle.cl = 0;
-	u8 unpackBuffer[512] {};
-	vif.execute(&testPacket[0], sizeof(testPacket), &unpackBuffer[0], sizeof(unpackBuffer));
+	jmmt::ps2::VifEmulator vif;
+	auto unpackBuffer = jmmt::ps2::makeVU0UnpackBuffer();
+	vif.execute(&testPacket[0], sizeof(testPacket), &unpackBuffer[0], jmmt::ps2::VU0_MEMORY_SIZE);
 
 	printf("the dance:\n");
-	hexDump(&unpackBuffer[0], sizeof(unpackBuffer));
+	hexDump(&unpackBuffer[0], jmmt::ps2::VU0_MEMORY_SIZE);
+
+
 #endif
 	return 0;
 }

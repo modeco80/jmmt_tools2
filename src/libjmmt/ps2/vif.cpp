@@ -4,9 +4,9 @@
 
 namespace jmmt::ps2 {
 
-	constexpr static auto gInstructionTable = Vif::makeInstructionTable();
+	constexpr static auto gInstructionTable = VifEmulator::makeInstructionTable();
 
-	u32 Vif::advanceInput(u32 len) {
+	u32 VifEmulator::advanceInput(u32 len) {
 		if((inputConsumed + len) > inputLength) {
 			len = inputLength - inputConsumed;
 		}
@@ -15,7 +15,7 @@ namespace jmmt::ps2 {
 		return len;
 	}
 
-	u32 Vif::getBytesFromInput(void* pOut, u32 len) {
+	u32 VifEmulator::getBytesFromInput(void* pOut, u32 len) {
 		if((inputConsumed + len) > inputLength) {
 			len = inputLength - inputConsumed;
 		}
@@ -29,29 +29,17 @@ namespace jmmt::ps2 {
 		return len;
 	}
 
-	void* Vif::allocOutputData(u32 len) {
-		std::printf("allocOutputData(%u)\n", len);
-		if((outputConsumed + len) > outputLength) {
-			len = outputLength - outputConsumed;
-		}
-
-		if(len == 0)
-			return &pOutput[outputConsumed];
-
-		void* pOut = &pOutput[outputConsumed];
-		outputConsumed += len;
-		return pOut;
-	}
-
-	void Vif::reset() {
+	void VifEmulator::reset() {
 		memset(this, 0, sizeof(*this));
 	}
 
-	void Vif::execute(const u8* pTags, u32 tagBufferLength, u8* pUnpackData, u32 unpackLength) {
+	void VifEmulator::execute(const u8* pTags, u32 tagBufferLength, u8* pVUMemory, u32 vuMemorySize) {
 		this->pInput = pTags;
 		this->inputLength = tagBufferLength;
-		this->pOutput = pUnpackData;
-		this->outputLength = unpackLength;
+		this->pOutput = pVUMemory;
+		this->outputLength = vuMemorySize;
+
+		assert(vuMemorySize >= VU0_MEMORY_SIZE && "Invalid VU0 memory buffer");
 
 		while(true) {
 			// Early-exit can be triggered by invalid conditions.

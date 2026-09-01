@@ -127,7 +127,7 @@ namespace jmmt::ps2 {
 						"v4"
 					};
 
-					printf("unpack %s.%d (addr %04x, %s, ", elementNameTable[static_cast<usize>(inst.getUnpackElementType())], inst.getUnpackBitLength(),
+					printf("unpack %s.%d (addr %04x, %s ", elementNameTable[static_cast<usize>(inst.getUnpackElementType())], inst.getUnpackBitLength(),
 						static_cast<u32>(inst.instUnpack.addressDiv16) * 16,
 						(inst.instUnpack.zeroExtend) ? "zero-extend" : "sign-extend"
 					);

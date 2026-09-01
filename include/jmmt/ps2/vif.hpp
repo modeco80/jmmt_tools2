@@ -173,28 +173,17 @@ namespace jmmt::ps2 {
 
 	mcoAssertSize(VifCodeInstruction, 4);
 
-#define VIF_INSTRUCTION(inst) void Vif::vifInst_##inst(VifCodeInstruction instr)
+#define VIF_INSTRUCTION(inst) void VifEmulator::vifInst_##inst(const VifCodeInstruction& instr)
 
-	struct VifPacket {
-		enum {
-			Direct = 0,
-			Unpack = 1,
+	constexpr static u32 VU0_MEMORY_SIZE = 0x2000; // 8KB
 
-			Single = 0x10, // lane kinds
-			V2,
-			V4
-		};
-
-		u16 kind;
-		u16 lanekind;
-
-		void* data() {
-			return static_cast<void*>(this + 1);
-		}
-	};
+	/// Helper function to make a VU0 unpack buffer.
+	inline Unique<u8[]> makeVU0UnpackBuffer() {
+		return std::make_unique<u8[]>(VU0_MEMORY_SIZE);
+	}
 
 	/// Emulates the PS2's VIF, allowing for unpack of VIFtag data.
-	class Vif {
+	class VifEmulator {
 	   public:
 		// registers
 		u8 mode {};
@@ -220,47 +209,37 @@ namespace jmmt::ps2 {
 
 		u8* pOutput;
 		u32 outputLength;
-		u32 outputConsumed = 0;
 
 		u32 getBytesFromInput(void* pOut, u32 len);
 		u32 advanceInput(u32 len);
 
-		/// Returns a pointer to data which can be written to.
-		/// Essentially this is a bump allocator.
-		void* allocOutputData(u32 len);
-
-		VifPacket* allocVifPacket(u32 len) {
-			void* p = allocOutputData(len + sizeof(VifPacket));
-			return static_cast<VifPacket*>(p);
-		}
-
 		// Instructions
-		void vifInst_Invalid(VifCodeInstruction);
-#define X(inst, _code) void vifInst_##inst(VifCodeInstruction);
+		void vifInst_Invalid(const VifCodeInstruction&);
+#define X(inst, _code) void vifInst_##inst(const VifCodeInstruction&);
 		VIF_INSTRUCTIONS()
 #undef X
 
 	   public:
-		Vif() {
+		VifEmulator() {
 			reset();
 		}
 
 		/// See [vif_instructions.cpp] and [vif_instructions_unpack.cpp] for instruction implmentations.
 		constexpr static auto makeInstructionTable() {
-			std::array<void (Vif::*)(VifCodeInstruction), 0x7f> table {};
+			std::array<void (VifEmulator::*)(const VifCodeInstruction&), 0x7f> table {};
 			// initalize all elements of the table with invalid instructions
 
 			for(auto i = 0; i < table.size(); ++i)
-				table[i] = &Vif::vifInst_Invalid;
-#define X(inst, code) table[code] = &Vif::vifInst_##inst;
+				table[i] = &VifEmulator::vifInst_Invalid;
+#define X(inst, code) table[code] = &VifEmulator::vifInst_##inst;
 			VIF_INSTRUCTIONS()
 #undef X
 
 			// Unpack modes are handled by the instruction based on the instruction's
 			// cmd value; therefore we have to fill all variations with the value
 			for(auto i = 0x60; i < 0x6f; ++i) {
-				table[i] = &Vif::vifInst_unpack;
-				table[i + 0x10] = &Vif::vifInst_unpack; // w. writemask bit set
+				table[i] = &VifEmulator::vifInst_unpack;
+				table[i + 0x10] = &VifEmulator::vifInst_unpack; // w. writemask bit set
 			}
 			return table;
 		}
@@ -268,8 +247,9 @@ namespace jmmt::ps2 {
 		/// Reset the VIF state.
 		void reset();
 
-		/// Executes the VIFcode. This will unpack the data into [pUnpackData].
-		void execute(const u8* pTags, u32 tagBufferLength, u8* pUnpackData, u32 unpackLength);
+		/// Executes the VIFcode. This will unpack the data into [pVUMemory]. Assumes
+		// pVUMemory is a buffer with at least [VU0_MEMORY_SIZE] bytes available.
+		void execute(const u8* pTags, u32 tagBufferLength, u8* pVUMemory, u32 vuMemorySize);
 	};
 
 	/// Disassembles VIF tag data into a more human-friendly text stream. Does not actually unpack the data.

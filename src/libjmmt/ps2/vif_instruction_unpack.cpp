@@ -9,7 +9,7 @@ namespace jmmt::ps2 {
 		OffsetW = 3,
 	};
 
-	void doWrite(Vif& vif, bool mask, u32 offset, u32& dest, u32 data) {
+	void doWrite(VifEmulator& vif, bool mask, u32 offset, u32& dest, u32 data) {
 		u32 n = 0;
 
 		if(mask) {
@@ -58,7 +58,7 @@ namespace jmmt::ps2 {
 	}
 
 	template <class T>
-	void unpackS(Vif& vif, bool mask, u32* dest, const T* src) {
+	void unpackS(VifEmulator& vif, bool mask, u32* dest, const T* src) {
 		u32 data = *src;
 		doWrite(vif, mask, OffsetX, *(dest + 0), data);
 		doWrite(vif, mask, OffsetY, *(dest + 1), data);
@@ -67,7 +67,7 @@ namespace jmmt::ps2 {
 	}
 
 	template <class T>
-	void unpackV2(Vif& vif, bool mask, u32* dest, const T* src) {
+	void unpackV2(VifEmulator& vif, bool mask, u32* dest, const T* src) {
 		doWrite(vif, mask, OffsetX, *(dest + 0), *(src + 0));
 		doWrite(vif, mask, OffsetY, *(dest + 1), *(src + 1));
 		doWrite(vif, mask, OffsetZ, *(dest + 2), *(src + 0));
@@ -75,7 +75,7 @@ namespace jmmt::ps2 {
 	}
 
 	template <class T>
-	void unpackV4(Vif& vif, bool mask, u32* dest, const T* src) {
+	void unpackV4(VifEmulator& vif, bool mask, u32* dest, const T* src) {
 		doWrite(vif, mask, OffsetX, *(dest + 0), *(src + 0));
 		doWrite(vif, mask, OffsetY, *(dest + 1), *(src + 1));
 		doWrite(vif, mask, OffsetZ, *(dest + 2), *(src + 2));
@@ -83,7 +83,7 @@ namespace jmmt::ps2 {
 	}
 
 	template <class T>
-	void unpackV45(Vif& vif, bool mask, u32* dest, const T* src) {
+	void unpackV45(VifEmulator& vif, bool mask, u32* dest, const T* src) {
 		u32 data = *src;
 		doWrite(vif, mask, OffsetX, *(dest + 0), ((data & 0x001f) << 3));
 		doWrite(vif, mask, OffsetY, *(dest + 1), ((data & 0x03e0) >> 2));
@@ -99,37 +99,30 @@ namespace jmmt::ps2 {
 			"v4"
 		};
 
-		std::printf("reached an unpack\n");
+		std::printf("reached an unpack for vu addr 0x%04x\n", static_cast<u32>(instr.instUnpack.addressDiv16) * 16);
 
-		// Allocate memory in the output buffer which can hold our unpacked data.
-		auto* pPacket = allocVifPacket(instr.getUnpackByteLength());
-		void* pOutput = pPacket->data(); // allocOutputData(instr.getUnpackByteLength());
+		auto* pUnpackOutput = &pOutput[static_cast<u32>(instr.instUnpack.addressDiv16) * 16];
 
-		pPacket->kind = VifPacket::Unpack;
-
-		for(u8 i = 0; i < instr.num; ++i) {
+		// TODO this is fucked up
+		for(usize i = 0; i < instr.getUnpackByteLength();) {
 			switch(instr.getUnpackBitLength()) {
 				case 5:
 					// We should only get here for unpack.v4 instructions.
 					assert(instr.getUnpackElementType() == VifCodeInstruction::UnpackElementType::V4);
-					pPacket->lanekind = VifPacket::V4;
-					unpackV45(*this, instr.getUnpackWriteMask(), (u32*)pOutput + i, (const u32*)pInput);
+					unpackV45(*this, instr.getUnpackWriteMask(), (u32*)pUnpackOutput + i, (const u32*)pInput);
 					break;
 #define DOSIZE(N)                                                                                    \
 	case N:                                                                                          \
 		switch(instr.getUnpackElementType()) {                                                       \
 			case VifCodeInstruction::UnpackElementType::S:                                           \
-				pPacket->lanekind = VifPacket::Single;                                               \
-				unpackS(*this, instr.getUnpackWriteMask(), (u32*)pOutput + i, (const u##N*)pInput);  \
+				unpackS(*this, instr.getUnpackWriteMask(), (u32*)pUnpackOutput + i, (const u##N*)pInput);  \
 				break;                                                                               \
 			case VifCodeInstruction::UnpackElementType::V2:                                          \
-				pPacket->lanekind = VifPacket::V2;                                                   \
-				unpackV2(*this, instr.getUnpackWriteMask(), (u32*)pOutput + i, (const u##N*)pInput); \
+				unpackV2(*this, instr.getUnpackWriteMask(), (u32*)pUnpackOutput + i, (const u##N*)pInput); \
 				break;                                                                               \
 			case VifCodeInstruction::UnpackElementType::V3:                                          \
 			case VifCodeInstruction::UnpackElementType::V4:                                          \
-				pPacket->lanekind = VifPacket::V4;                                                   \
-				unpackV4(*this, instr.getUnpackWriteMask(), (u32*)pOutput + i, (const u##N*)pInput); \
+				unpackV4(*this, instr.getUnpackWriteMask(), (u32*)pUnpackOutput + i, (const u##N*)pInput); \
 				break;                                                                               \
 		}                                                                                            \
 		break;
@@ -139,9 +132,8 @@ namespace jmmt::ps2 {
 			}
 
 			advanceInput(instr.getUnpackElementByteLength());
+			i += instr.getUnpackElementByteLength();
 		}
-
-		// advanceInput(instr.getUnpackByteLength());
 	}
 
 } // namespace jmmt::ps2
