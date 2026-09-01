@@ -37,7 +37,7 @@ namespace jmmt::ps2 {
 					break;
 
 				case VifCodeInstruction::stmod:
-					std::printf("stmod %d\n", inst.immediate & 0b00000011);
+					std::printf("stmod %02x\n", inst.immediate & 0b00000011);
 					break;
 
 				case VifCodeInstruction::mskpath3:
@@ -63,11 +63,11 @@ namespace jmmt::ps2 {
 
 				// execute vu micro
 				case VifCodeInstruction::mscal:
-					std::printf("mscal %d\n", inst.immediate);
+					std::printf("mscal 0x%04x\n", inst.immediate * 8);
 					break;
 
 				case VifCodeInstruction::mscalf:
-					std::printf("(vif1) mscalf %d\n", inst.immediate);
+					std::printf("(vif1) mscalf 0x%04x\n", inst.immediate * 8);
 					break;
 
 				case VifCodeInstruction::mscnt:
@@ -100,7 +100,7 @@ namespace jmmt::ps2 {
 				} break;
 
 				case VifCodeInstruction::mpg:
-					std::printf("mpg (%08x), %u\n",
+					std::printf("mpg (%08x), qwc %u\n",
 								static_cast<u32>(inst.immediate) * 8,
 								static_cast<u32>(inst.num));
 					buffer.advanceInput(static_cast<u32>(inst.num) * 8);
@@ -127,13 +127,16 @@ namespace jmmt::ps2 {
 						"v4"
 					};
 
-					printf("unpack %s.%d", elementNameTable[static_cast<usize>(inst.getUnpackElementType())], inst.getUnpackBitLength());
+					printf("unpack %s.%d (addr %04x, %s, ", elementNameTable[static_cast<usize>(inst.getUnpackElementType())], inst.getUnpackBitLength(),
+						static_cast<u32>(inst.instUnpack.addressDiv16) * 16,
+						(inst.instUnpack.zeroExtend) ? "zero-extend" : "sign-extend"
+					);
 
 					if(inst.getUnpackWriteMask()) {
-						std::printf(" wmask");
+						std::printf("write-mask");
 					}
 
-					std::printf("\n");
+					std::printf(")\n");
 
 					buffer.advanceInput(inst.getUnpackByteLength());
 				} break;

@@ -1,3 +1,6 @@
 [submodule "third_party/mcolib"]
 	path = third_party/mcolib
 	url = https://github.com/modeco80/mcolib.git
+[submodule "third_party/raylib"]
+	path = third_party/raylib
+	url = https://github.com/raysan5/raylib

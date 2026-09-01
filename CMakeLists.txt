@@ -23,6 +23,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 # Third party dependencies
 add_subdirectory(third_party/mcolib)
+add_subdirectory(third_party/raylib)
 add_subdirectory(src/libjmmt)
 
 add_subdirectory(src/tools/jmpak)
+add_subdirectory(src/tools/temp)
