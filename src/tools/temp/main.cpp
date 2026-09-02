@@ -70,8 +70,8 @@ void initColors() {
 }
 
 void renderOctreeNode(const aOctree& octreeNode, u32 depth) {
-	Vector3 vMin{octreeNode.minX, octreeNode.minZ, octreeNode.minY};
-	Vector3 vMax{octreeNode.maxX, octreeNode.maxZ, octreeNode.maxY};
+	Vector3 vMin{octreeNode.minX, octreeNode.minY, octreeNode.minZ};
+	Vector3 vMax{octreeNode.maxX, octreeNode.maxY, octreeNode.maxZ};
 	Aabb aabb{vMin, vMax};
 
 	DrawCubeWires(aabb.getCenter(), aabb.getLength(), aabb.getWidth(), aabb.getHeight(), treeDepthColors[depth % treeDepthColors.size()]);
@@ -86,7 +86,6 @@ void renderOctrees() {
 
 void renderScene() {
 	renderOctrees();
-	DrawGrid(10, 1.f);
 }
 
 constexpr static auto kWidth = 1024;
@@ -103,7 +102,7 @@ int main(int argc, char** argv) {
 	Camera3D camera{};
 	camera.position = Vector3(10., 10. , 10.);
 	camera.target = Vector3{};
-	camera.up = Vector3{0, 1, 0};
+	camera.up = Vector3{0, 0, 1};
 	camera.fovy = 45;
 	camera.projection = CAMERA_PERSPECTIVE;
 
@@ -122,13 +121,9 @@ int main(int argc, char** argv) {
 		BeginDrawing();
 			ClearBackground(BLACK);
 
-			// Sidenote but I fucking hate raylib's pass by value slop
-			// It's easier in C but Just Use A Fucking Pointer
 			BeginMode3D(camera);
 				renderScene();
 			EndMode3D();
-
-			//DrawText("Hello World", 20, 20, 10, BLACK);
 		EndDrawing();
 	}
 
