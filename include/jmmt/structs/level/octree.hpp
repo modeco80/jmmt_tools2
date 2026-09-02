@@ -15,8 +15,8 @@ namespace jmmt::structs::level {
 		float maxY;
 		float maxZ;
 
-		i16 sibling; // Next
-		i16 child;
+		u16 sibling; // Next
+		u16 child;
 	};
 
 	mcoAssertSize(aOctree, 0x20);
