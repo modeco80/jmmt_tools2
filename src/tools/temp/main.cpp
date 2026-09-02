@@ -69,12 +69,19 @@ void initColors() {
 		treeDepthColors.push_back(Color(rand() % 255, rand() % 255, rand() % 255, 255));
 }
 
+const Color& getColorFor(const aOctree& octreeNode) {
+	// use the bbox of the octree node as a really stupid hash function
+	const u32 hashKeyMin = std::bit_cast<u32>(octreeNode.minX) | std::bit_cast<u32>(octreeNode.minY) >> 16 | std::bit_cast<u32>(octreeNode.minZ) >> 20;
+	const u32 hashKeyMax = std::bit_cast<u32>(octreeNode.maxX) | std::bit_cast<u32>(octreeNode.maxY) >> 16 | std::bit_cast<u32>(octreeNode.maxZ) >> 20;
+	return treeDepthColors[(hashKeyMin ^ (hashKeyMax >> 2)) % treeDepthColors.size()];
+}
+
 void renderOctreeNode(const aOctree& octreeNode, u32 depth) {
 	Vector3 vMin{octreeNode.minX, octreeNode.minY, octreeNode.minZ};
 	Vector3 vMax{octreeNode.maxX, octreeNode.maxY, octreeNode.maxZ};
 	Aabb aabb{vMin, vMax};
 
-	DrawCubeWires(aabb.getCenter(), aabb.getLength(), aabb.getWidth(), aabb.getHeight(), treeDepthColors[depth % treeDepthColors.size()]);
+	DrawCubeWires(aabb.getCenter(), aabb.getLength(), aabb.getWidth(), aabb.getHeight(), getColorFor(octreeNode));
 	DrawCubeWires(aabb.getCenter(), 1.f, 1.f, 1.f, WHITE);
 }
 
