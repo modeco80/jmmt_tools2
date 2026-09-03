@@ -9,10 +9,9 @@ struct Aabb {
 
 	Vector3 getCenter() const {
 		return Vector3(
-			(vMax.x + vMin.x) * 0.5f,
-			(vMax.y + vMin.y) * 0.5f,
-			(vMax.z + vMin.z) * 0.5f
-		);
+		(vMax.x + vMin.x) * 0.5f,
+		(vMax.y + vMin.y) * 0.5f,
+		(vMax.z + vMin.z) * 0.5f);
 	}
 
 	float getLength() const {

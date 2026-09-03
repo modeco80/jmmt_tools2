@@ -57,7 +57,6 @@ namespace jmmt {
 		return crc;
 	}
 
-
 	Crc32Result hashStringCase(std::string_view str) {
 		u32 crc = 0;
 		for(char c : str) {
@@ -65,4 +64,4 @@ namespace jmmt {
 		}
 		return crc;
 	}
-}
+} // namespace jmmt

@@ -20,4 +20,4 @@ namespace jmmt::impl {
 		free(ppObjectPointers);
 	}
 
-}
+} // namespace jmmt::impl

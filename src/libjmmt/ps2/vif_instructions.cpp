@@ -34,7 +34,6 @@ namespace jmmt::ps2 {
 
 	VIF_INSTRUCTION(stmod) {
 		mode = instr.immediate & 0b00000011;
-		std::printf("new mode set %02x\n", mode);
 	}
 
 	VIF_INSTRUCTION(mskpath3) {
@@ -58,7 +57,7 @@ namespace jmmt::ps2 {
 	}
 
 	VIF_INSTRUCTION(mscal) {
-		TODO(mscal)
+		// Not actually a TODO. This exits tag processing.
 		exit = true;
 	}
 
@@ -89,6 +88,7 @@ namespace jmmt::ps2 {
 
 	VIF_INSTRUCTION(mpg) {
 		TODO(mpg)
+		// Skip VU microprogram bytes.
 		advanceInput(instr.num * 8);
 	}
 

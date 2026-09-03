@@ -1,6 +1,6 @@
 #pragma once
-#include <mco/fourcc.hpp>
 #include <jmmt/structs/lzss.hpp>
+#include <mco/fourcc.hpp>
 
 namespace jmmt::structs {
 

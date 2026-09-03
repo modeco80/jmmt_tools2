@@ -1,11 +1,11 @@
 #include <cstdio>
 #include <filesystem>
+#include <jmmt/fs/pak_file_stream.hpp>
 #include <jmmt/fs/pak_filesystem.hpp>
+#include <mco/io/file_stream.hpp>
 #include <mco/utils.hpp>
 
 #include "cmd.hpp"
-#include <jmmt/fs/pak_file_stream.hpp>
-#include <mco/io/file_stream.hpp>
 #include "mco/io/stream_utils.hpp"
 #include "utils.hpp"
 
@@ -20,8 +20,7 @@ namespace jmpak {
 
 		void commandExtractAllHelp() {
 			std::printf(
-				"Extracts the entire package's contents.\n"
-			);
+			"Extracts the entire package's contents.\n");
 		}
 
 		int commandExtractAll(int argc, char** argv) {
@@ -43,7 +42,7 @@ namespace jmpak {
 			}
 
 			auto pakFilenamePath = std::filesystem::path(argv[0]);
-			auto outputRoot = std::filesystem::current_path() /pakFilenamePath.stem();
+			auto outputRoot = std::filesystem::current_path() / pakFilenamePath.stem();
 
 			if(!std::filesystem::exists(outputRoot))
 				std::filesystem::create_directories(outputRoot);

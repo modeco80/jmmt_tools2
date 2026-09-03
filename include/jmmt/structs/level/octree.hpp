@@ -20,4 +20,4 @@ namespace jmmt::structs::level {
 	};
 
 	mcoAssertSize(aOctree, 0x20);
-}
+} // namespace jmmt::structs::level

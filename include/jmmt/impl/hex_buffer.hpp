@@ -1,7 +1,7 @@
 #pragma once
 #include <array>
-#include <mco/fixed_string.hpp>
 #include <mco/base_types.hpp>
+#include <mco/fixed_string.hpp>
 
 namespace jmmt::impl {
 	/// Converts a hex string into a fixed buffer at compile time.

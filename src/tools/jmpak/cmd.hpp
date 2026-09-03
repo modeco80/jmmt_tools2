@@ -17,7 +17,6 @@ namespace jmpak {
 		static void forEachImpl(bool (*pfn)(Command* command, void* user), void* user);
 
 	   public:
-
 		/// Finds a command. Returns nullopt or a pointer to the command.
 		static std::optional<Command*> find(char cmd);
 

@@ -1,5 +1,7 @@
 #pragma once
 #include <mco/base_types.hpp>
+#include <string>
+
 #include "math.hpp"
 
 struct PatchNode {
@@ -20,7 +22,12 @@ struct OctreeNode {
 };
 
 // TODO
-class WorldParser
-{
-public:
+class WorldParser {
+	OctreeNode* octreeRoot;
+	PatchNode* patches;
+
+   public:
+	WorldParser() = default;
+
+	void loadWorld(const std::string& pakName);
 };

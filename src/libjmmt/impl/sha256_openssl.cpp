@@ -1,9 +1,10 @@
-#include <jmmt/impl/sha256.hpp>
 #include <openssl/evp.h>
+
+#include <jmmt/impl/sha256.hpp>
 
 namespace jmmt::impl {
 	ShaDigest sha256Digest(const u8* pData, usize length) {
-		ShaDigest digest{};
+		ShaDigest digest {};
 		auto ctx = EVP_MD_CTX_new();
 		EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
 		EVP_DigestUpdate(ctx, pData, length);
@@ -13,8 +14,8 @@ namespace jmmt::impl {
 	}
 
 	ShaDigest sha256Digest(mco::Stream& stream) {
-		ShaDigest digest{};
-		u8 buffer[1024]{};
+		ShaDigest digest {};
+		u8 buffer[1024] {};
 
 		auto ctx = EVP_MD_CTX_new();
 
@@ -31,4 +32,4 @@ namespace jmmt::impl {
 		EVP_MD_CTX_free(ctx);
 		return digest;
 	}
-}
+} // namespace jmmt::impl

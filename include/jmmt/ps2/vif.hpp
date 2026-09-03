@@ -173,6 +173,7 @@ namespace jmmt::ps2 {
 
 	mcoAssertSize(VifCodeInstruction, 4);
 
+	// Used to define a VIF emulator instruction.
 #define VIF_INSTRUCTION(inst) void VifEmulator::vifInst_##inst(const VifCodeInstruction& instr)
 
 	constexpr static u32 VU0_MEMORY_SIZE = 0x2000; // 8KB

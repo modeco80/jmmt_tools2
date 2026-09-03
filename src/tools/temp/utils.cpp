@@ -1,7 +1,8 @@
 #include "utils.hpp"
-#include "jmmt/fs/pak_filesystem.hpp"
 
 #include <cstring>
+
+#include "jmmt/fs/pak_filesystem.hpp"
 
 Ref<jmmt::fs::GameFileSystem> gGetGameFileSystem() {
 	static Ref<jmmt::fs::GameFileSystem> ptr;
@@ -56,7 +57,7 @@ Blob gReadFileFromPak(Ref<jmmt::fs::PakFileSystem> pakHandle, const std::string&
 	auto uniq = std::make_unique<u8[]>(size);
 
 	// Read chunk-sized package data
-	u8 buf[65535]{};
+	u8 buf[65535] {};
 	usize cursor = 0;
 	auto* pDst = uniq.get();
 	while(true) {

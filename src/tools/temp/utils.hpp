@@ -17,4 +17,3 @@ Blob gReadFileFromPak(Ref<jmmt::fs::PakFileSystem> pakHandle, const std::string&
 
 /// Reads a file from a loaded PAK into a blob.
 Blob gReadFileFromPak(const std::string& pakName, const std::string& path);
-

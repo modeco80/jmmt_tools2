@@ -128,9 +128,8 @@ namespace jmmt::ps2 {
 					};
 
 					printf("unpack %s.%d (addr %04x, %s ", elementNameTable[static_cast<usize>(inst.getUnpackElementType())], inst.getUnpackBitLength(),
-						static_cast<u32>(inst.instUnpack.addressDiv16) * 16,
-						(inst.instUnpack.zeroExtend) ? "zero-extend" : "sign-extend"
-					);
+						   static_cast<u32>(inst.instUnpack.addressDiv16) * 16,
+						   (inst.instUnpack.zeroExtend) ? "zero-extend" : "sign-extend");
 
 					if(inst.getUnpackWriteMask()) {
 						std::printf("write-mask");

@@ -1,3 +1,4 @@
+#include <cstring>
 #include <jmmt/crc.hpp>
 #include <jmmt/fs/game_filesystem.hpp>
 #include <jmmt/fs/pak_filesystem.hpp>
@@ -10,7 +11,6 @@
 #include <mco/io/file_stream.hpp>
 #include <mco/io/memory_stream.hpp>
 #include <unordered_map>
-#include <cstring>
 
 namespace jmmt::fs {
 

@@ -1,13 +1,13 @@
-#include <jmmt/structs/level/octree.hpp>
-#include "utils.hpp"
-#include "math.hpp"
-
-#include <vector>
-#include <set>
-
 #include <raylib.h>
 #include <raymath.h>
 #include <rlgl.h>
+
+#include <jmmt/structs/level/octree.hpp>
+#include <set>
+#include <vector>
+
+#include "math.hpp"
+#include "utils.hpp"
 
 using aOctree = jmmt::structs::level::aOctree;
 
@@ -19,13 +19,13 @@ struct TraverseState {
 	u32 depth;
 };
 
-template<class Fn>
-void traverseOctreeImpl(Fn&& fn, const aOctree& octreeNode) {
+template <class Fn>
+void traverseOctreeImpl(Fn&& fn, const aOctree& rootNode) {
 	std::vector<TraverseState> stackList;
 	std::set<const aOctree*> set;
 
 	// push root node
-	stackList.push_back(TraverseState{ &octreeNode, 0});
+	stackList.push_back(TraverseState { &rootNode, 0 });
 
 	while(!stackList.empty()) {
 		auto current = stackList.back();
@@ -42,7 +42,7 @@ void traverseOctreeImpl(Fn&& fn, const aOctree& octreeNode) {
 				continue;
 			if(auto it = set.find(&gOctreeArray[current.pNode->sibling]); it != set.end())
 				continue;
-			stackList.push_back(TraverseState { &gOctreeArray[current.pNode->sibling], current.depth});
+			stackList.push_back(TraverseState { &gOctreeArray[current.pNode->sibling], current.depth });
 		}
 
 		if(current.pNode->child) {
@@ -50,12 +50,12 @@ void traverseOctreeImpl(Fn&& fn, const aOctree& octreeNode) {
 				continue;
 			if(auto it = set.find(&gOctreeArray[current.pNode->child]); it != set.end())
 				continue;
-			stackList.push_back(TraverseState {&gOctreeArray[current.pNode->child], current.depth + 1 });
+			stackList.push_back(TraverseState { &gOctreeArray[current.pNode->child], current.depth + 1 });
 		}
 	}
 }
 
-template<class Fn>
+template <class Fn>
 void traverseOctree(Fn&& fn) {
 	traverseOctreeImpl(fn, gOctreeArray[1]);
 }
@@ -77,9 +77,9 @@ const Color& getColorFor(const aOctree& octreeNode) {
 }
 
 void renderOctreeNode(const aOctree& octreeNode, u32 depth) {
-	Vector3 vMin{octreeNode.minX, octreeNode.minY, octreeNode.minZ};
-	Vector3 vMax{octreeNode.maxX, octreeNode.maxY, octreeNode.maxZ};
-	Aabb aabb{vMin, vMax};
+	Vector3 vMin { octreeNode.minX, octreeNode.minY, octreeNode.minZ };
+	Vector3 vMax { octreeNode.maxX, octreeNode.maxY, octreeNode.maxZ };
+	Aabb aabb { vMin, vMax };
 
 	DrawCubeWires(aabb.getCenter(), aabb.getLength(), aabb.getWidth(), aabb.getHeight(), getColorFor(octreeNode));
 	DrawCubeWires(aabb.getCenter(), 1.f, 1.f, 1.f, WHITE);
@@ -106,10 +106,10 @@ int main(int argc, char** argv) {
 
 	InitWindow(kWidth, kHeight, "jmmt_tools2 world viewer");
 
-	Camera3D camera{};
-	camera.position = Vector3(10., 10. , 10.);
-	camera.target = Vector3{};
-	camera.up = Vector3{0, 0, 1};
+	Camera3D camera {};
+	camera.position = Vector3(10., 10., 10.);
+	camera.target = Vector3 {};
+	camera.up = Vector3 { 0, 0, 1 };
 	camera.fovy = 45;
 	camera.projection = CAMERA_PERSPECTIVE;
 
@@ -121,19 +121,18 @@ int main(int argc, char** argv) {
 	initColors();
 
 	while(!WindowShouldClose()) {
-		if (IsKeyDown(KEY_F)) {
+		if(IsKeyDown(KEY_F)) {
 			UpdateCamera(&camera, CAMERA_FREE);
 		}
 
 		BeginDrawing();
-			ClearBackground(BLACK);
+		ClearBackground(BLACK);
 
-			BeginMode3D(camera);
-				renderScene();
-			EndMode3D();
+		BeginMode3D(camera);
+		renderScene();
+		EndMode3D();
 		EndDrawing();
 	}
-
 
 	return 0;
 }

@@ -7,10 +7,10 @@ namespace jmmt::impl {
 
 	/// Base bucket pool class.
 	class FreeListBucketPool {
-	protected:
+	   protected:
 		u8** ppObjectPointers;
-	public:
 
+	   public:
 		/// Constructor. Allocates a [maxObjects] * [objectSize] pool of memory
 		/// which can be used for the freelist. Inheritors have access to the [ppObjectPointers]
 		/// pointer array, which is initalized by this constructor to point to each object slot.
@@ -23,15 +23,14 @@ namespace jmmt::impl {
 	};
 
 	/// Shim over [FreeListBucketPool] to make it typed.
-	template<class T>
-	class FreeListTypedBucketPool : FreeListBucketPool
-	{
-	public:
+	template <class T>
+	class FreeListTypedBucketPool : FreeListBucketPool {
+	   public:
 		explicit FreeListTypedBucketPool(usize maxObjects)
 			: FreeListBucketPool(maxObjects, sizeof(T)) {
 		}
 
-	protected:
+	   protected:
 		inline T* getPointer(usize index) const {
 			return reinterpret_cast<T*>(ppObjectPointers[index]);
 		}
@@ -57,11 +56,11 @@ namespace jmmt::impl {
 	constexpr static FreeListObjectHandle InvalidHandle = -1;
 
 	/// The actual freelist bucket.
-	template<class T, usize MaxSize>
+	template <class T, usize MaxSize>
 	class FreeListBucket : public FreeListTypedBucketPool<T> {
 		std::bitset<MaxSize> allocatedSet;
-	public:
 
+	   public:
 		T* getObjectPointer(u32 index) {
 			if(!allocatedSet[index])
 				return nullptr;
@@ -111,7 +110,7 @@ namespace jmmt::impl {
 		}
 
 		FreeListBucket()
-		: FreeListTypedBucketPool<T>(MaxSize) {
+			: FreeListTypedBucketPool<T>(MaxSize) {
 		}
 
 		~FreeListBucket() {
@@ -124,8 +123,8 @@ namespace jmmt::impl {
 	template <class T, u32 MaxSize>
 	class FreeListAllocator {
 		FreeListBucket<T, MaxSize>* pBucket = nullptr;
-	public:
 
+	   public:
 		FreeListAllocator() = default;
 
 		// Freelist allocators cannot be relocated. However, the only consumer of this code
