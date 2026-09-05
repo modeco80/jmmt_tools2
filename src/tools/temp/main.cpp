@@ -3,16 +3,36 @@
 #include <rlgl.h>
 
 #include <jmmt/structs/level/octree.hpp>
+#include <jmmt/structs/level/patch.hpp>
 #include <set>
 #include <vector>
 
+// VIF fun
+#include <jmmt/ps2/vif.hpp>
+#include <jmmt/ps2/vu_float.hpp>
+
 #include "math.hpp"
 #include "utils.hpp"
+#include "worldloader.hpp"
+
+// Raylib math setup for jmmt::ps2::VuVector
+// It is a template so that libjmmt itself does not
+// need to provide a math type.
+struct RaylibVectorTraits {
+	using Vec2 = Vector2;
+	using Vec3 = Vector3;
+	using Vec4 = Vector4;
+};
+using VuVector = jmmt::ps2::VuVector<RaylibVectorTraits>;
+
 
 using aOctree = jmmt::structs::level::aOctree;
+using aVifPatch = jmmt::structs::level::aVifPatch;
 
 // Octree state
 Blob::TypedArrayView<aOctree> gOctreeArray;
+
+std::vector<PatchNode> gPatches;
 
 struct TraverseState {
 	const aOctree* pNode;
@@ -60,6 +80,42 @@ void traverseOctree(Fn&& fn) {
 	traverseOctreeImpl(fn, gOctreeArray[1]);
 }
 
+// Patch processing
+
+// VIF/vu0 micromem emulation state.
+// Each aVifPatch structure is actually an individual DMAC VIFtag,
+// which needs to be unpacked into VU micro-memory, then further processed.
+static jmmt::ps2::VifEmulator vif0Emu;
+static u8 vu0MicroMem[jmmt::ps2::VU0_MEMORY_SIZE]{};
+
+// Converts jmmt aVifPatch structure to something somewhat standard
+PatchNode convertPatch(const aVifPatch& patch, float scale) {
+	PatchNode p;
+
+	vif0Emu.reset();
+	vif0Emu.execute(reinterpret_cast<const u8*>(&patch),  sizeof(jmmt::structs::level::aVifPatch), &vu0MicroMem[0], jmmt::ps2::VU0_MEMORY_SIZE);
+
+	// Each thing the VIFtag dumped into VU micromem is actually fixed-point,
+	// so we have to further convert it back to floating point vectors.
+
+	for(auto i = 0; i < 16; ++i) {
+		VuVector vec(reinterpret_cast<u32*>(&vu0MicroMem[0]), 0x230 + (i*16), VuVector::LANES_XYZ);
+		p.controlPoints[i] = vec.toFloatXYZ<12>() * scale;
+	}
+
+	for(auto i = 0; i < 16; ++i) {
+		VuVector vec(reinterpret_cast<u32*>(&vu0MicroMem[0]), 0x330 + (i*16), VuVector::LANES_XYZ);
+		p.rgbPoints[i] = vec.toFloatXYZ<4>();
+	}
+
+	for(auto i = 0; i < 4; ++i) {
+		VuVector vec(reinterpret_cast<u32*>(&vu0MicroMem[0]), 0x430 + (i*16), VuVector::LANES_XY);
+		p.uvPoints[i] = vec.toFloatXY<12>();
+	}
+
+	return p;
+}
+
 // Rendering
 
 std::vector<Color> treeDepthColors;
@@ -91,8 +147,21 @@ void renderOctrees() {
 	});
 }
 
+Color multipliedPatchRgbColor(const Vector3& colorPoint) {
+	return Color((u8)std::clamp(colorPoint.x * 2.f, 0.f, 255.f), (u8)std::clamp(colorPoint.y * 2.f, 0.f, 255.f), (u8)std::clamp(colorPoint.z * 2.f, 0.f, 255.f),255);
+}
+
+void renderPatch(const PatchNode& patch) {
+	for(i32 i = 0; i < 16; ++i) {
+		DrawCubeWires(patch.controlPoints[i], 1.f, 1.f, 1.f, multipliedPatchRgbColor(patch.rgbPoints[i]));
+	}
+}
+
 void renderScene() {
-	renderOctrees();
+	for(u32 i = 0; i < gPatches.size(); ++i)
+		renderPatch(gPatches[i]);
+	DrawGrid(100, 5.f);
+	//renderOctrees();
 }
 
 constexpr static auto kWidth = 1024;
@@ -103,6 +172,17 @@ int main(int argc, char** argv) {
 
 	auto octreeBlob = gReadFileFromPak(worldPak, "TerrainGroup/octree.bin");
 	gOctreeArray = octreeBlob.castArray<aOctree>();
+
+	auto patchBlob = gReadFileFromPak(worldPak, "TerrainGroup/patch.bin");
+
+	const auto pPatchHeader = patchBlob.cast<jmmt::structs::level::aPatchHeader>();
+	printf("%d patches\n", pPatchHeader->patchCount);
+	const auto pPatchArray = patchBlob.castArrayAt<jmmt::structs::level::aVifPatch>(pPatchHeader->patchOffset, pPatchHeader->patchCount);
+
+	gPatches.resize(pPatchHeader->patchCount-1);
+	for(auto i = 1; i < pPatchHeader->patchCount; ++i) {
+		gPatches[i-1] = convertPatch(pPatchArray[i], pPatchHeader->scale);
+	}
 
 	InitWindow(kWidth, kHeight, "jmmt_tools2 world viewer");
 

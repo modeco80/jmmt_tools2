@@ -59,7 +59,7 @@ int main() {
 			testVuVector vec(reinterpret_cast<u32*>(&vu0MicroMem[0]), 0x230 + (i*16), testVuVector::LANES_XYZ);
 			auto convertedVector = vec.toFloatXYZ<12>();
 			//printf("vec[%d @ %04x]: (%f, %f, %f)\n", i, 0x230 + (i*16), convertedVector.x, convertedVector.y, convertedVector.z);
-			printf("(%0.4f, %0.4f, %0.4f) ", convertedVector.x * pPatchHeader->scale, convertedVector.y * pPatchHeader->scale, convertedVector.z * pPatchHeader->scale);
+			printf("(%0.4f, %0.4f, %0.4f) ", convertedVector.x / pPatchHeader->scale, convertedVector.y / pPatchHeader->scale, convertedVector.z / pPatchHeader->scale);
 		}
 		printf("\n]\n");
 
