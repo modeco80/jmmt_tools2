@@ -9,22 +9,10 @@
 
 // VIF fun
 #include <jmmt/ps2/vif.hpp>
-#include <jmmt/ps2/vu_float.hpp>
 
 #include "math.hpp"
 #include "utils.hpp"
 #include "worldloader.hpp"
-
-// Raylib math setup for jmmt::ps2::VuVector
-// It is a template so that libjmmt itself does not
-// need to provide a math type.
-struct RaylibVectorTraits {
-	using Vec2 = Vector2;
-	using Vec3 = Vector3;
-	using Vec4 = Vector4;
-};
-using VuVector = jmmt::ps2::VuVector<RaylibVectorTraits>;
-
 
 using aOctree = jmmt::structs::level::aOctree;
 using aVifPatch = jmmt::structs::level::aVifPatch;
@@ -141,6 +129,8 @@ void renderOctreeNode(const aOctree& octreeNode, u32 depth) {
 	DrawCubeWires(aabb.getCenter(), 1.f, 1.f, 1.f, WHITE);
 }
 
+void renderPatch(const PatchNode& patch);
+
 void renderOctrees() {
 	traverseOctree([&](const aOctree& node, u32 depth) {
 		renderOctreeNode(node, depth);
@@ -158,7 +148,7 @@ void renderPatch(const PatchNode& patch) {
 }
 
 void renderScene() {
-	for(u32 i = 0; i < gPatches.size(); ++i)
+	for(u32 i = 1; i < gPatches.size(); ++i)
 		renderPatch(gPatches[i]);
 	DrawGrid(100, 5.f);
 	//renderOctrees();
@@ -179,9 +169,9 @@ int main(int argc, char** argv) {
 	printf("%d patches\n", pPatchHeader->patchCount);
 	const auto pPatchArray = patchBlob.castArrayAt<jmmt::structs::level::aVifPatch>(pPatchHeader->patchOffset, pPatchHeader->patchCount);
 
-	gPatches.resize(pPatchHeader->patchCount-1);
-	for(auto i = 1; i < pPatchHeader->patchCount; ++i) {
-		gPatches[i-1] = convertPatch(pPatchArray[i], pPatchHeader->scale);
+	gPatches.resize(pPatchHeader->patchCount);
+	for(auto i = 0; i < pPatchHeader->patchCount; ++i) {
+		gPatches[i] = convertPatch(pPatchArray[i], pPatchHeader->scale);
 	}
 
 	InitWindow(kWidth, kHeight, "jmmt_tools2 world viewer");
