@@ -28,6 +28,7 @@ namespace jmmt::ps2 {
 
 		const bool isV45 = elementRawBitLength == 3 && elementType == VifCodeInstruction::UnpackElementType::V4;
 		const auto bitsPerVector = isV45 ? 16 : (numComponents * bitsPerComponent);
+		//printf("bits per vector %d num components %d\n", bitsPerVector, numComponents);
 		const auto bytesPerVector = static_cast<u32>((bitsPerVector + 7) / 8);
 		const auto writeVectorCount = (instr.instUnpack.num == 0u) ? 256 : static_cast<u32>(instr.instUnpack.num);
 
@@ -54,8 +55,7 @@ namespace jmmt::ps2 {
 		const auto totalBytes = ((sourceVectorCount * bytesPerVector) + 3u) & ~3u;
 		const auto vuMemoryAddress = static_cast<u32>(instr.instUnpack.addressDiv16 & 0x3FFu);
 
-		const u8* pVectorInputBase = pInput;
-		u32 inputIndex = 0;
+
 
 		auto decompressScalar = [&](const u8* pSource, u32 component) -> u32 {
 			switch(bitsPerComponent) {
@@ -148,6 +148,8 @@ namespace jmmt::ps2 {
 					const u32 y = decompressScalar(pSource, 1);
 					const u32 z = decompressScalar(pSource, 2);
 
+					//printf("%08x, %08x, %08x\n", x, y, z);
+
 					out[0] = applyVifMode(x, 0);
 					out[1] = applyVifMode(y, 1);
 					out[2] = applyVifMode(z, 2);
@@ -167,6 +169,9 @@ namespace jmmt::ps2 {
 			}
 		};
 
+		const u8* pVectorInputBase = &pInput[inputConsumed];
+		u32 inputIndex = 0;
+
 		for(u32 i = 0; i < writeVectorCount; ++i) {
 			const u32 cyclePos = i % wl;
 			const bool writeThisVector = filling ? (cyclePos < cl) : true;
@@ -184,6 +189,7 @@ namespace jmmt::ps2 {
 				break;
 
 			const u8* pVectorSource = pVectorInputBase + inputIndex * bytesPerVector;
+			//printf("unpack addr = %08x\n", inputIndex*bytesPerVector);
 			++inputIndex;
 
 			std::array<u32, 4> vectorLanes{};
@@ -194,7 +200,7 @@ namespace jmmt::ps2 {
 				std::memcpy(&pOutput[destQwordOffset], &vectorLanes[0], sizeof(vectorLanes));
 		}
 
-		advanceInput((pVectorInputBase + inputIndex * bytesPerVector) - pInput);
+		advanceInput((pVectorInputBase + inputIndex * bytesPerVector) - pVectorInputBase);
 	}
 
 } // namespace jmmt::ps2

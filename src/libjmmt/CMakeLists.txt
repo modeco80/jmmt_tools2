@@ -43,9 +43,3 @@ target_link_libraries(jmmt_lib PUBLIC
 )
 
 add_library(jmmt::libjmmt ALIAS jmmt_lib)
-
-add_executable(vifdis_test ps2/vifdis_test.cpp)
-jmmt_target(vifdis_test)
-target_link_libraries(vifdis_test PUBLIC
-    jmmt::libjmmt
-)
