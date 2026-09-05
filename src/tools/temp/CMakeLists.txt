@@ -1,6 +1,7 @@
 add_executable(jmtest
 	main.cpp
 	utils.cpp
+	worldloader.cpp
 	)
 
 jmmt_target(jmtest)

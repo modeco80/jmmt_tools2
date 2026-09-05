@@ -5,10 +5,10 @@
 #include "math.hpp"
 
 struct PatchNode {
-	float controlPoints[16];
-	// TODO:
-	// RGB
-	// Texture UV
+	Vector3 controlPoints[16];
+	Vector3 rgbPoints[16];
+	Vector2 uvPoints[4];
+	// TODO Need sector n texture
 };
 
 struct OctreeNode {
@@ -22,12 +22,19 @@ struct OctreeNode {
 };
 
 // TODO
-class WorldParser {
+class WorldLoader {
 	OctreeNode* octreeRoot;
 	PatchNode* patches;
-
+	u32 octreeCount;
+	u32 patchCount;
    public:
-	WorldParser() = default;
+	WorldLoader() = default;
+	~WorldLoader();
 
 	void loadWorld(const std::string& pakName);
+
+	u32 getPatchCount() const { return patchCount; }
+	PatchNode* getPatches() const {
+		return patches;
+	}
 };
