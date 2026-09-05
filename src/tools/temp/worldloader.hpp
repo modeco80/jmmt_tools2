@@ -1,6 +1,7 @@
 #pragma once
 #include <mco/base_types.hpp>
 #include <string>
+#include <span>
 
 #include "math.hpp"
 
@@ -23,8 +24,12 @@ struct OctreeNode {
 
 // TODO
 class WorldLoader {
+	OctreeNode* domeOctreeRoot;
+	PatchNode* domePatches;
 	OctreeNode* octreeRoot;
 	PatchNode* patches;
+	u32 domeOctreeCount;
+	u32 domePatchCount;
 	u32 octreeCount;
 	u32 patchCount;
    public:
@@ -33,8 +38,11 @@ class WorldLoader {
 
 	void loadWorld(const std::string& pakName);
 
-	u32 getPatchCount() const { return patchCount; }
-	PatchNode* getPatches() const {
-		return patches;
+	constexpr std::span<PatchNode> getDomePatches() const {
+		return { domePatches, domePatchCount };
+	}
+
+	constexpr std::span<PatchNode> getPatches() const {
+		return {patches, patchCount };
 	}
 };

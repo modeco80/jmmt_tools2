@@ -92,6 +92,23 @@ void unpackVifPatchToNode(PatchNode& p, const aVifPatch& patch, float scale) {
 	}
 }
 
+void unpackPatches(Ref<jmmt::fs::PakFileSystem> worldPak, PatchNode*& pPatchArray, u32& patchCount, const std::string& patchFileName) {
+	auto patchBlob = gReadFileFromPak(worldPak, patchFileName);
+
+	const auto patchHeader = patchBlob.cast<jmmt::structs::level::aPatchHeader>();
+	const auto patchArray = patchBlob.castArrayAt<jmmt::structs::level::aVifPatch>(patchHeader->patchOffset, patchHeader->patchCount);
+
+	// TODO: Sector & patch texture jazz
+
+	patchCount = patchHeader->patchCount;
+	pPatchArray = new PatchNode[patchHeader->patchCount];
+
+	// Unpack patch data
+	for(auto i = 0; i < patchHeader->patchCount; ++i) {
+		unpackVifPatchToNode(pPatchArray[i], patchArray[i], patchHeader->scale);
+	}
+}
+
 WorldLoader::~WorldLoader() {
 	if(patches)
 		delete[] patches;
@@ -100,23 +117,11 @@ WorldLoader::~WorldLoader() {
 void WorldLoader::loadWorld(const std::string& pakName) {
 	auto worldPak = gOpenPakFile(pakName);
 
-	// TODO: Unpack octree
+	// TODO: Unpack octrees
 	//auto octreeBlob = gReadFileFromPak(worldPak, "TerrainGroup/octree.bin");
 	//auto gOctreeArray = octreeBlob.castArray<aOctree>();
 
-	auto patchBlob = gReadFileFromPak(worldPak, "TerrainGroup/patch.bin");
-
-	const auto patchHeader = patchBlob.cast<jmmt::structs::level::aPatchHeader>();
-	const auto patchArray = patchBlob.castArrayAt<jmmt::structs::level::aVifPatch>(patchHeader->patchOffset, patchHeader->patchCount);
-
-	// TODO: Sector & patch texture jazz
-
-	patchCount = patchHeader->patchCount;
-	patches = new PatchNode[patchCount];
-
-	// Unpack patch data
-	for(auto i = 0; i < patchHeader->patchCount; ++i) {
-		unpackVifPatchToNode(patches[i], patchArray[i], patchHeader->scale);
-	}
-
+	// Unpack patche files
+	unpackPatches(worldPak, domePatches, domePatchCount, "TerrainGroup/domepatch.bin");
+	unpackPatches(worldPak, patches, patchCount, "TerrainGroup/patch.bin");
 }

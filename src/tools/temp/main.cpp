@@ -15,9 +15,15 @@ void renderPatch(const PatchNode& patch) {
 	}
 }
 
+void renderPatches(std::span<PatchNode> patches) {
+	for(auto& patch : patches) {
+		renderPatch(patch);
+	}
+}
+
 void renderScene(WorldLoader& world) {
-	for(u32 i = 1; i < world.getPatchCount(); ++i)
-		renderPatch(world.getPatches()[i]);
+	renderPatches(world.getDomePatches());
+	renderPatches(world.getPatches());
 	DrawGrid(100, 5.f);
 }
 
@@ -42,8 +48,6 @@ int main(int argc, char** argv) {
 	SetTargetFPS(60);
 
 	rlSetClipPlanes(1.f, 100000.f);
-
-	//initColors();
 
 	while(!WindowShouldClose()) {
 		if(IsKeyDown(KEY_F)) {
